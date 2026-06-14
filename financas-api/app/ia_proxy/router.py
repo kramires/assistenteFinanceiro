@@ -93,6 +93,31 @@ async def lancar_texto(
     return await _salvar_dados_ia(dados, db)
 
 
+@router.post("/ia/lancar-audio")
+async def lancar_audio(
+    file: UploadFile,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    form_data = {"file": (file.filename or "audio.webm", await file.read(), file.content_type)}
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            resp = await client.post(
+                f"{settings.ia_api_url}/ia/lancar-audio",
+                files=form_data,
+            )
+            resp.raise_for_status()
+            dados = resp.json()
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"IA indisponível: {exc}")
+
+    if not dados:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="IA não conseguiu extrair dados do áudio.")
+
+    return await _salvar_dados_ia(dados, db)
+
+
 @router.post("/nota/upload")
 async def nota_upload(
     file: UploadFile,

@@ -11,6 +11,7 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 - **Transporte App** — rastreamento separado de gastos com aplicativos de transporte (Uber, 99 etc.)
 - **Importação de Extrato** — upload de CSV bancário com deduplicação automática e categorização via IA
 - **Lançamento por Texto** — descreva a transação em linguagem natural e a IA estrutura automaticamente
+- **Lançamento por Voz** — fale a transação pelo microfone; Whisper transcreve e a IA lança automaticamente
 - **Lançamento por Nota** — envie foto ou imagem de uma nota fiscal para extração via IA
 - **Resumo Narrativo** — relatório mensal gerado por IA em linguagem natural
 
@@ -35,10 +36,10 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 │                     │  │                                │
 │  • Auth             │  │  • /ia/categorizar             │
 │  • Transações       │  │  • /ia/lancar-texto            │
-│  • Categorias       │  │  • /ia/nota/upload             │
-│  • Orçamentos       │  │  • /ia/resumo-narrativo        │
-│  • Dashboard        │  └────────────────────────────────┘
-│  • Transporte       │
+│  • Categorias       │  │  • /ia/lancar-audio (Whisper) │
+│  • Orçamentos       │  │  • /ia/nota/upload             │
+│  • Dashboard        │  │  • /ia/resumo-narrativo        │
+│  • Transporte       │  └────────────────────────────────┘
 │  • Extrato          │
 │  • ia_proxy →───────┘ (proxia chamadas IA com JWT)
 └──────────┬──────────┘
@@ -192,10 +193,10 @@ Flags disponíveis:
 │
 ├── ia-api/                # Microserviço de IA
 │   ├── app/
-│   │   ├── categorizar/   # Categorização de transações
-│   │   ├── lancar_texto/  # Lançamento por linguagem natural
-│   │   ├── nota/          # Extração de nota fiscal por imagem
-│   │   ├── lancar_audio/  # Lançamento por áudio
+│   │   ├── categorizar/      # Categorização de transações
+│   │   ├── lancar_texto/     # Lançamento por linguagem natural
+│   │   ├── lancar_audio/     # Lançamento por voz (Whisper-1)
+│   │   ├── nota/             # Extração de nota fiscal por imagem
 │   │   └── resumo_narrativo/ # Relatório mensal narrativo
 │   ├── Dockerfile
 │   └── requirements.txt
