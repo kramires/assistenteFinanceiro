@@ -1,0 +1,50 @@
+# ─── Secrets e ambiente ───────────────────────────────────────────────────────
+.env
+.env/
+venv/
+financas.env
+
+# ─── Banco de dados local legado ──────────────────────────────────────────────
+financas.db
+*.db
+
+# ─── Legado (sistema anterior) ────────────────────────────────────────────────
+backend/
+Extratos/
+package-lock.json
+requirements.txt
+
+# ─── Ferramentas internas (Reversa / Claude) ──────────────────────────────────
+.reversa/
+.agents/
+.claude/
+Specs_reversa/
+CLAUDE.md
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+*.egg-info/
+dist/
+build/
+
+# ─── Node / React ─────────────────────────────────────────────────────────────
+node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.production
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Editores ─────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
