@@ -14,6 +14,7 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 - **Lançamento por Voz** — fale a transação pelo microfone; Whisper transcreve e a IA lança automaticamente
 - **Lançamento por Nota** — envie foto ou imagem de uma nota fiscal para extração via IA
 - **Resumo Narrativo** — relatório mensal gerado por IA em linguagem natural
+- **Bot Discord** — lance transações por texto, voz ou foto direto de um canal Discord
 
 ## Arquitetura
 
@@ -212,6 +213,11 @@ Flags disponíveis:
 ├── nginx/
 │   └── nginx.conf         # Reverse proxy + SSL
 │
+├── discord-bot/           # Bot Discord
+│   ├── bot.py             # Texto, voz e imagem → endpoints da API
+│   ├── Dockerfile
+│   └── requirements.txt
+│
 ├── scripts/
 │   └── migrate_db.py      # Migração SQLite → PostgreSQL
 │
@@ -251,6 +257,39 @@ ALLOWED_ORIGINS=https://seudominio.com,http://localhost:3000
 # URL interna da ia-api (Docker network)
 IA_API_URL=http://ia-api:8002
 ```
+
+## Bot Discord
+
+O bot aceita comandos no canal configurado, bloqueado por user ID. Suporta três modos:
+
+| Tipo de mensagem | O que faz |
+|-----------------|-----------|
+| Texto livre | Lança via IA (GPT-4.1) |
+| Mensagem de voz / arquivo de áudio | Transcreve com Whisper e lança |
+| Foto / imagem de nota fiscal | Extrai dados com visão e lança |
+| `!ajuda` | Exibe instruções |
+
+### Configuração
+
+1. Acesse [discord.com/developers/applications](https://discord.com/developers/applications) e crie uma **New Application**
+2. Em **Bot**: crie o bot, copie o token e ative **Message Content Intent**
+3. Em **OAuth2 → URL Generator**: marque `bot` + permissões `Send Messages` e `Read Message History`
+4. Use a URL gerada para adicionar o bot ao seu servidor
+5. Cole o token em `financas.env`:
+
+```env
+DISCORD_BOT_TOKEN=seu_token_aqui
+DISCORD_ALLOWED_USER_ID=seu_discord_user_id
+DISCORD_CHANNEL_ID=id_do_canal
+```
+
+6. Suba (ou reinicie) com:
+
+```bash
+docker compose --env-file financas.env up -d discord-bot
+```
+
+> O bot autentica automaticamente na API com as credenciais `ADMIN_USERNAME`/`ADMIN_PASSWORD` e renova o JWT quando necessário.
 
 ## Segurança
 

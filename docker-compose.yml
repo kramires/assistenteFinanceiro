@@ -33,6 +33,15 @@ services:
     ports:
       - "8002:8002"
 
+  discord-bot:
+    build: ./discord-bot
+    restart: unless-stopped
+    env_file: financas.env
+    environment:
+      FINANCAS_API_URL: http://financas-api:8001
+    depends_on:
+      - financas-api
+
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
