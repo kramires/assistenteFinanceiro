@@ -70,6 +70,17 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 - Node.js 18+ (apenas para desenvolvimento local do frontend)
 - Python 3.12+ (apenas para o script de migração de dados)
 
+## Iniciar / Parar
+
+Duplo clique nos arquivos na pasta do projeto:
+
+| Arquivo | Ação |
+|---------|------|
+| `start.command` | Sobe todos os serviços |
+| `stop.command` | Derruba todos os serviços |
+
+> **Primeira vez no macOS:** clique direito → Abrir para passar pelo aviso de segurança. Nas próximas vezes o duplo clique funciona normalmente.
+
 ## Início Rápido
 
 ### 1. Variáveis de ambiente
@@ -221,6 +232,8 @@ Flags disponíveis:
 ├── scripts/
 │   └── migrate_db.py      # Migração SQLite → PostgreSQL
 │
+├── start.command          # Duplo clique para subir os serviços (macOS)
+├── stop.command           # Duplo clique para derrubar os serviços (macOS)
 ├── docker-compose.yml
 └── .env.example
 ```
