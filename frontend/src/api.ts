@@ -19,7 +19,7 @@ export async function apiFetch(input: RequestInfo, init: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`);
   }
   const resp = await fetch(input, { ...init, headers });
-  if (resp.status === 401) {
+  if (resp.status === 401 || resp.status === 403) {
     clearToken();
     window.dispatchEvent(new Event('af:unauthorized'));
   }

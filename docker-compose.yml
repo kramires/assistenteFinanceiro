@@ -24,14 +24,14 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "8001:8001"
+      - "${FINANCAS_API_PORT:-18001}:8001"
 
   ia-api:
     build: ./ia-api
     restart: unless-stopped
     env_file: financas.env
     ports:
-      - "8002:8002"
+      - "${IA_API_PORT:-18002}:8002"
 
   discord-bot:
     build: ./discord-bot
@@ -46,8 +46,8 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${HTTP_PORT:-8765}:80"
+      - "${HTTPS_PORT:-4443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend/build:/usr/share/nginx/html:ro

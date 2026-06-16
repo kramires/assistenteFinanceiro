@@ -7,11 +7,24 @@ import LancamentosPage from './components/LancamentosPage';
 import BudgetList from './components/BudgetList';
 import BudgetForm from './components/BudgetForm';
 import UberPage from './components/UberPage';
+import CartoesPage from './components/CartoesPage';
+import PerfilModal from './components/PerfilModal';
 import LoginPage from './auth/LoginPage';
 
 import './App.css';
 import { API_BASE } from './config';
-import { apiFetch, clearToken, getToken }  from './api';
+import { apiFetch, clearToken, getToken } from './api';
+
+function getUsernameFromToken(): string {
+  const token = getToken();
+  if (!token) return '';
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub || '';
+  } catch {
+    return '';
+  }
+}
 
 // --- Constantes e Tipos ---
 const currentYear = new Date().getFullYear();
@@ -21,7 +34,7 @@ for (let y = 2023; y <= currentYear + 1; y++) {
 }
 const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-type Aba = 'visualizacao' | 'lancamento' | 'uber' | 'categorias';
+type Aba = 'visualizacao' | 'lancamento' | 'uber' | 'categorias' | 'cartoes';
 
 interface GastoCategoria { categoria: string; total: number; }
 interface EvolucaoMensal { mes: string; total: number; }
@@ -42,6 +55,7 @@ function App() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [alertas, setAlertas] = useState<string[]>([]);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
+  const [perfilAberto, setPerfilAberto] = useState(false);
 
   const refreshAll = () => setRefresh(r => !r);
 
@@ -63,11 +77,11 @@ function App() {
     if (abaAtiva === 'visualizacao') {
       setBackendUnavailable(false);
       Promise.all([
-        apiFetch(`${API_BASE}/dashboard/gastos-por-categoria?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then(data => setGastosCategoria(data)),
-        apiFetch(`${API_BASE}/dashboard/evolucao-mensal?ano=${anoSelecionado}`).then(res => res.json()).then(data => setEvolucaoMensal(data)),
-        apiFetch(`${API_BASE}/dashboard/resumo-anual?ano=${anoSelecionado}`).then(res => res.json()).then(data => setResumoAnual(data)),
-        apiFetch(`${API_BASE}/dashboard/alertas?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then((data: { alertas: string[] }) => setAlertas(data.alertas || [])),
-        apiFetch(`${API_BASE}/categorias`).then(res => res.json()).then(data => setCategorias(data)),
+        apiFetch(`${API_BASE}/dashboard/gastos-por-categoria?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setGastosCategoria(data)),
+        apiFetch(`${API_BASE}/dashboard/evolucao-mensal?ano=${anoSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setEvolucaoMensal(data)),
+        apiFetch(`${API_BASE}/dashboard/resumo-anual?ano=${anoSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setResumoAnual(data)),
+        apiFetch(`${API_BASE}/dashboard/alertas?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then((data: { alertas: string[] }) => setAlertas(Array.isArray(data?.alertas) ? data.alertas : [])),
+        apiFetch(`${API_BASE}/categorias`).then(res => res.json()).then(data => Array.isArray(data) && setCategorias(data)),
       ]).catch(handleFetchError);
     }
   }, [anoSelecionado, mesSelecionado, abaAtiva, refresh]);
@@ -86,6 +100,9 @@ function App() {
 
   return (
     <div style={styles.appContainer}>
+      {perfilAberto && (
+        <PerfilModal username={getUsernameFromToken()} onClose={() => setPerfilAberto(false)} />
+      )}
       {backendUnavailable && (
         <div style={styles.backendBanner}>
           <strong>Backend não disponível.</strong> Inicie o servidor com:{' '}
@@ -99,6 +116,7 @@ function App() {
           <select id="year-select" value={anoSelecionado} onChange={e => setAnoSelecionado(Number(e.target.value))} style={styles.yearSelect}>
             {anosDisponiveis.map(ano => <option key={ano} value={ano}>{ano}</option>)}
           </select>
+          <button onClick={() => setPerfilAberto(true)} style={styles.logoutBtn}>Perfil</button>
           <button onClick={handleLogout} style={styles.logoutBtn}>Sair</button>
         </div>
       </header>
@@ -108,6 +126,7 @@ function App() {
         <TabButton label="Movimentações" isActive={abaAtiva === 'lancamento'} onClick={() => setAbaAtiva('lancamento')} />
         <TabButton label="Transporte por Aplicativo" isActive={abaAtiva === 'uber'} onClick={() => setAbaAtiva('uber')} />
         <TabButton label="Categorias" isActive={abaAtiva === 'categorias'} onClick={() => setAbaAtiva('categorias')} />
+        <TabButton label="Cartões" isActive={abaAtiva === 'cartoes'} onClick={() => setAbaAtiva('cartoes')} />
       </div>
 
       {(abaAtiva === 'visualizacao' || abaAtiva === 'uber') && (
@@ -150,6 +169,9 @@ function App() {
         )}
         {abaAtiva === 'categorias' && (
           <CategoryList />
+        )}
+        {abaAtiva === 'cartoes' && (
+          <CartoesPage />
         )}
       </main>
     </div>

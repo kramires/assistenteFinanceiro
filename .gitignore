@@ -12,7 +12,7 @@ financas.db
 backend/
 Extratos/
 package-lock.json
-requirements.txt
+/requirements.txt
 
 # ─── Ferramentas internas (Reversa / Claude) ──────────────────────────────────
 .reversa/

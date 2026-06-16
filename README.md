@@ -1,15 +1,17 @@
 # Assistente Financeiro
 
-Aplicação web de finanças pessoais com IA integrada. Controle de transações, orçamentos, importação de extratos bancários e análise inteligente por texto ou foto.
+Aplicação web de finanças pessoais com IA integrada. Controle de transações, orçamentos, importação de extratos bancários, cartões de crédito e análise inteligente por texto, voz ou foto.
 
 ## Funcionalidades
 
 - **Autenticação JWT** — login seguro com token de longa duração
+- **Perfil** — troca de senha pelo próprio usuário na interface
 - **Transações** — cadastro manual, edição e exclusão com categorização automática
 - **Categorias e Orçamentos** — limites mensais por categoria com alertas em 80%
 - **Dashboard** — resumo do mês, gastos por categoria, evolução mensal, resumo anual com saldo acumulado
 - **Transporte App** — rastreamento separado de gastos com aplicativos de transporte (Uber, 99 etc.)
 - **Importação de Extrato** — upload de CSV bancário com deduplicação automática e categorização via IA
+- **Cartões de Crédito** — importe faturas Nubank (CSV) e Banco do Brasil (PDF); acompanhe parcelas futuras; dashboard por categoria e cartão; pagamento de fatura registra automaticamente no extrato principal
 - **Lançamento por Texto** — descreva a transação em linguagem natural e a IA estrutura automaticamente
 - **Lançamento por Voz** — fale a transação pelo microfone; Whisper transcreve e a IA lança automaticamente
 - **Lançamento por Nota** — envie foto ou imagem de uma nota fiscal para extração via IA
@@ -22,9 +24,9 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 ┌─────────────────────────────────────────────────────────┐
 │                    Browser / Cliente                    │
 └─────────────────────┬───────────────────────────────────┘
-                      │ HTTPS
+                      │ HTTP (porta 8765 local / 443 prod)
 ┌─────────────────────▼───────────────────────────────────┐
-│                  Nginx (porta 80/443)                   │
+│              Nginx (porta 8765 local)                   │
 │   /           → React SPA (build estático)             │
 │   /api/*      → financas-api:8001                      │
 │   /ia/*       → ia-api:8002                            │
@@ -33,21 +35,22 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 ┌──────────▼──────────┐  ┌───────▼────────────────────────┐
 │   financas-api      │  │          ia-api                │
 │   FastAPI + JWT     │  │   FastAPI + OpenAI/DeepSeek   │
-│   Porto 8001        │  │   Porto 8002 (sem auth)        │
+│   Porta 8001        │  │   Porta 8002 (sem auth)        │
 │                     │  │                                │
-│  • Auth             │  │  • /ia/categorizar             │
+│  • Auth + Perfil    │  │  • /ia/categorizar             │
 │  • Transações       │  │  • /ia/lancar-texto            │
 │  • Categorias       │  │  • /ia/lancar-audio (Whisper) │
 │  • Orçamentos       │  │  • /ia/nota/upload             │
 │  • Dashboard        │  │  • /ia/resumo-narrativo        │
-│  • Transporte       │  └────────────────────────────────┘
-│  • Extrato          │
+│  • Transporte       │  │  • /ia/extrair-fatura          │
+│  • Extrato          │  └────────────────────────────────┘
+│  • Cartões/Faturas  │
 │  • ia_proxy →───────┘ (proxia chamadas IA com JWT)
 └──────────┬──────────┘
            │
 ┌──────────▼──────────┐
 │  PostgreSQL 16      │
-│  Porto 5432         │
+│  Porta 5432         │
 └─────────────────────┘
 ```
 
@@ -62,7 +65,7 @@ Aplicação web de finanças pessoais com IA integrada. Controle de transações
 | Microserviço IA | FastAPI + OpenAI SDK (GPT-4.1 / GPT-4.1-mini) |
 | Banco de dados | PostgreSQL 16 |
 | Autenticação | JWT (python-jose + passlib bcrypt) |
-| Infraestrutura | Docker Compose + Nginx + Let's Encrypt |
+| Infraestrutura | Docker Compose + Nginx |
 
 ## Pré-requisitos
 
@@ -101,7 +104,16 @@ Edite `financas.env` com suas credenciais reais. Os campos obrigatórios são:
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Usuário criado automaticamente na primeira migração |
 | `OPENAI_API_KEY` | Chave da OpenAI (funcionalidades de IA) |
 
-### 2. Subir os serviços
+### 2. Build do frontend
+
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+### 3. Subir os serviços
 
 ```bash
 docker compose --env-file financas.env up -d
@@ -109,20 +121,15 @@ docker compose --env-file financas.env up -d
 
 O `financas-api` roda `alembic upgrade head` automaticamente ao iniciar. Na primeira vez, as tabelas e o usuário admin são criados.
 
-### 3. Build do frontend (produção)
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-O Nginx serve o build em `frontend/build/` automaticamente.
-
 ### 4. Acessar
 
-- **Local (dev):** `http://localhost` (Nginx) ou `http://localhost:3000` (React dev server)
-- **API docs:** `http://localhost:8001/docs`
+| URL | O que é |
+|-----|---------|
+| `http://localhost:8765` | Aplicação web |
+| `http://localhost:18001/docs` | Swagger da financas-api |
+| `http://localhost:18002/docs` | Swagger da ia-api |
+
+> As portas padrão foram escolhidas para não conflitar com serviços comuns. Você pode alterá-las em `financas.env` (ver variáveis de porta abaixo).
 
 ## Desenvolvimento Local
 
@@ -146,7 +153,7 @@ O `setupProxy.js` já redireciona `/api` → porta 8001 e `/ia` → porta 8002.
 
 1. Aponte seu domínio para o IP do VPS
 2. Configure `ALLOWED_ORIGINS` em `financas.env` com `https://seudominio.com`
-3. Edite `nginx/nginx.conf` — substitua `${DOMAIN}` pelo seu domínio
+3. Descomente o bloco HTTPS em `nginx/nginx.conf` e substitua `SEU_DOMINIO.com`
 4. Obtenha o certificado:
 
 ```bash
@@ -190,13 +197,15 @@ Flags disponíveis:
 .
 ├── financas-api/          # Backend principal (CRUD + JWT + dashboard)
 │   ├── app/
-│   │   ├── auth/          # JWT login
+│   │   ├── auth/          # JWT login + troca de senha
 │   │   ├── categorias/    # CRUD de categorias
 │   │   ├── transacoes/    # CRUD de transações
 │   │   ├── orcamentos/    # Orçamentos mensais (upsert)
 │   │   ├── dashboard/     # Agregações e resumos
 │   │   ├── transporte/    # Rastreamento de apps de transporte
 │   │   ├── extrato/       # Importação de CSV bancário
+│   │   ├── cartoes/       # CRUD de cartões de crédito
+│   │   ├── faturas/       # Faturas: importar, pagar, parcelas, dashboard
 │   │   ├── ia_proxy/      # Proxy autenticado para ia-api
 │   │   └── domain/        # Regras de negócio (frozensets de categorias)
 │   ├── alembic/           # Migrations do banco
@@ -205,24 +214,25 @@ Flags disponíveis:
 │
 ├── ia-api/                # Microserviço de IA
 │   ├── app/
-│   │   ├── categorizar/      # Categorização de transações
-│   │   ├── lancar_texto/     # Lançamento por linguagem natural
-│   │   ├── lancar_audio/     # Lançamento por voz (Whisper-1)
-│   │   ├── nota/             # Extração de nota fiscal por imagem
-│   │   └── resumo_narrativo/ # Relatório mensal narrativo
+│   │   ├── categorizar/        # Categorização de transações
+│   │   ├── lancar_texto/       # Lançamento por linguagem natural
+│   │   ├── lancar_audio/       # Lançamento por voz (Whisper-1)
+│   │   ├── nota/               # Extração de nota fiscal por imagem
+│   │   ├── resumo_narrativo/   # Relatório mensal narrativo
+│   │   └── extrair_fatura/     # Extração de fatura PDF via GPT
 │   ├── Dockerfile
 │   └── requirements.txt
 │
 ├── frontend/              # React SPA
 │   └── src/
 │       ├── auth/          # Tela de login
-│       ├── components/    # Dashboard, Transações, Orçamentos etc.
+│       ├── components/    # Dashboard, Transações, Cartões, Orçamentos etc.
 │       ├── hooks/         # useAsyncState
 │       ├── api.ts         # apiFetch com JWT automático
 │       └── config.ts      # BASE URLs
 │
 ├── nginx/
-│   └── nginx.conf         # Reverse proxy + SSL
+│   └── nginx.conf         # Reverse proxy (HTTP local / HTTPS prod)
 │
 ├── discord-bot/           # Bot Discord
 │   ├── bot.py             # Texto, voz e imagem → endpoints da API
@@ -269,6 +279,12 @@ ALLOWED_ORIGINS=https://seudominio.com,http://localhost:3000
 
 # URL interna da ia-api (Docker network)
 IA_API_URL=http://ia-api:8002
+
+# Portas expostas no host (altere se conflitar com outros serviços)
+HTTP_PORT=8765       # App web: http://localhost:8765
+HTTPS_PORT=4443      # HTTPS (prod com cert)
+FINANCAS_API_PORT=18001   # Swagger: http://localhost:18001/docs
+IA_API_PORT=18002    # Swagger IA: http://localhost:18002/docs
 ```
 
 ## Bot Discord
@@ -304,12 +320,29 @@ docker compose --env-file financas.env up -d discord-bot
 
 > O bot autentica automaticamente na API com as credenciais `ADMIN_USERNAME`/`ADMIN_PASSWORD` e renova o JWT quando necessário.
 
+## Cartões de Crédito
+
+### Importar fatura
+
+- **Nubank CSV**: exporte pelo app → aba Cartões → selecione o cartão → importar CSV
+- **Banco do Brasil PDF**: exporte o PDF da fatura pelo Internet Banking → importar PDF
+  - O PDF é processado pelo GPT via ia-api; certifique-se de que `OPENAI_API_KEY` está configurada
+
+### Anti-dupla contagem
+
+Os lançamentos de fatura (`lancamentos_fatura`) são **separados** do extrato principal. Apenas o pagamento da fatura (`PUT /api/faturas/{id}/pagar`) cria uma transação no extrato principal. Isso garante que compras parceladas no cartão não sejam contadas duas vezes.
+
+### Parcelas futuras
+
+A aba "Parcelas Futuras" projeta automaticamente os próximos 6 meses com base nas faturas importadas, deduplicando compras parceladas quando múltiplos meses da mesma fatura são importados.
+
 ## Segurança
 
 - **Nunca commite** `financas.env` — está no `.gitignore`
 - Gere `JWT_SECRET_KEY` com `openssl rand -hex 32`
 - Em produção, use senhas fortes e um usuário PostgreSQL dedicado
 - O `ia-api` não expõe portas ao exterior no `docker-compose.yml` — só acessível via proxy interno
+- Troca de senha disponível em **Perfil** (botão no cabeçalho da aplicação)
 
 ## Licença
 

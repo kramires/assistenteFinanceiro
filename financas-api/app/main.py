@@ -10,6 +10,8 @@ from app.dashboard.router import router as dashboard_router
 from app.transporte.router import router as transporte_router
 from app.extrato.router import router as extrato_router
 from app.ia_proxy.router import router as ia_proxy_router
+from app.cartoes.router import router as cartoes_router
+from app.faturas.router import router as faturas_router
 
 app = FastAPI(title="financas-api", version="2.0.0", redirect_slashes=False)
 
@@ -30,6 +32,8 @@ app.include_router(dashboard_router, prefix=_PREFIX)
 app.include_router(transporte_router, prefix=_PREFIX)
 app.include_router(extrato_router, prefix=_PREFIX)
 app.include_router(ia_proxy_router, prefix=_PREFIX)
+app.include_router(cartoes_router, prefix=_PREFIX)
+app.include_router(faturas_router, prefix=_PREFIX)
 
 
 @app.get("/health")
