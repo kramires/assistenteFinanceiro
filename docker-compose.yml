@@ -30,8 +30,6 @@ services:
     build: ./ia-api
     restart: unless-stopped
     env_file: financas.env
-    ports:
-      - "${IA_API_PORT:-18002}:8002"
 
   discord-bot:
     build: ./discord-bot

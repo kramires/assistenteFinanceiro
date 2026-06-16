@@ -65,7 +65,15 @@ function App() {
     return () => window.removeEventListener('af:unauthorized', handleUnauthorized);
   }, []);
 
-  const handleLogout = () => { clearToken(); setIsLoggedIn(false); };
+  const handleLogout = async () => {
+    try {
+      await apiFetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+    } catch {
+      // ignora erro de rede — limpa token de qualquer forma
+    }
+    clearToken();
+    setIsLoggedIn(false);
+  };
 
   const handleFetchError = (err: unknown) => {
     if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message?.includes('fetch'))) {

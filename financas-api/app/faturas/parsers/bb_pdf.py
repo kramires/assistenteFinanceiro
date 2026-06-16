@@ -15,7 +15,10 @@ def extract_text(content: bytes) -> str:
 async def parse(content: bytes, mes_referencia: str) -> dict:
     """Extract text from PDF and send to ia-api for GPT structured extraction."""
     text = extract_text(content)
-    ano = int(mes_referencia.split("-")[0]) if mes_referencia else 2026
+    try:
+        ano = int(mes_referencia.split("-")[0]) if mes_referencia else 2026
+    except (ValueError, IndexError):
+        ano = 2026
 
     async with httpx.AsyncClient(timeout=90.0) as client:
         resp = await client.post(

@@ -1,7 +1,10 @@
+import re
 from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
+
+_MES_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.service import get_current_user
@@ -175,6 +178,12 @@ async def importar_fatura(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_user),
 ):
+    if not _MES_RE.match(mes_referencia):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="mes_referencia deve estar no formato YYYY-MM (ex: 2026-06)",
+        )
+
     content = await file.read()
     filename = (file.filename or "").lower()
 
