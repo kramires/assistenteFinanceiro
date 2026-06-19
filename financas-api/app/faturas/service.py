@@ -40,6 +40,15 @@ async def _resolver_categoria(
     if descricao in cache:
         return cache[descricao]
 
+    # Heurística local primeiro (gratuita e rápida)
+    from app.extrato.service import _heuristic
+    heuristica = _heuristic(descricao)
+    if heuristica != "Outros":
+        cat_id = categorias.get(heuristica)
+        cache[descricao] = cat_id
+        return cat_id
+
+    # IA como fallback para casos ambíguos
     nome = await _categorizar(descricao, list(categorias.keys()), sem)
     cat_id = categorias.get(nome) if nome else None
     cache[descricao] = cat_id

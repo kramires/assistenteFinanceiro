@@ -127,6 +127,54 @@ async def evolucao_mensal_cartoes(
     return resultado
 
 
+@router.post("/faturas/recategorizar-outros", status_code=200)
+async def recategorizar_outros(
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    """Re-executa categorização em todos os lançamentos com categoria 'Outros' ou sem categoria."""
+    import asyncio
+    from sqlalchemy import text
+
+    from app.categorias.repository import CategoriaRepository
+    from app.extrato.service import _heuristic
+    from app.faturas import service as svc_fat
+
+    cat_repo = CategoriaRepository(db)
+    cats_list = await cat_repo.listar()
+    categorias = {c.nome: c.id for c in cats_list}
+
+    result = await db.execute(text("""
+        SELECT lf.id, lf.descricao
+        FROM lancamentos_fatura lf
+        LEFT JOIN categorias c ON lf.categoria_id = c.id
+        WHERE c.nome = 'Outros' OR lf.categoria_id IS NULL
+    """))
+    items = result.all()
+
+    sem = asyncio.Semaphore(svc_fat._CATEGORIZE_CONCURRENCY)
+    atualizados = 0
+
+    for item in items:
+        # Heurística primeiro
+        cat_nome = _heuristic(item.descricao)
+        if cat_nome == "Outros":
+            # IA como fallback
+            cat_nome = await svc_fat._categorizar(item.descricao, list(categorias.keys()), sem) or "Outros"
+
+        if cat_nome and cat_nome != "Outros":
+            cat_id = categorias.get(cat_nome)
+            if cat_id:
+                await db.execute(
+                    text("UPDATE lancamentos_fatura SET categoria_id = :cid WHERE id = :id"),
+                    {"cid": cat_id, "id": item.id},
+                )
+                atualizados += 1
+
+    await db.commit()
+    return {"atualizados": atualizados, "total_outros": len(items)}
+
+
 @router.get("/faturas/dashboard")
 async def dashboard_cartoes(
     mes: str | None = None,

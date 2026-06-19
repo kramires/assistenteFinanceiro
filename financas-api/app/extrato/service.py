@@ -17,15 +17,26 @@ _HEURISTICS: list[tuple[list[str], str]] = [
     (["uber", "99 pop", "99cab", "99taxi", "cabify", "indriver",
       "taxi", "táxi"], "Transporte Alternativo"),
     (["transporte escolar"], "Transporte Escolar"),
-    # Streamings
+    # Streamings — antes de amazon genérico
     (["netflix", "spotify", "disney", "amazon prime", "primevideo", "globoplay",
       "hbo max", "hbomax", "paramount", "apple tv", "apple one", "apple music",
       "crunchyroll", "youtube premium", "star+", "star plus", "deezer",
-      "microsoft 365", "office 365", "max streaming"], "Streamings"),
+      "microsoft 365", "office 365", "max streaming", "ebn*playstation",
+      "playstation", "psn ", "steam ", "steam.", "xbox ", "nintendo",
+      "blizzard", "epic games", "riot games", "ea games"], "Lazer"),
+    # Compras Online / Marketplace — antes de supermercado
+    (["amazon", "shopee", "aliexpress", "mercado livre", "mercadolivre",
+      "magalu", "magazine luiza", "americanas", "casas bahia", "pontofrio",
+      "netshoes", "centauro", "jim.com", "shoptime", "smiles fidel",
+      "americanas", "submarino", "kabum", "terabyteshop", "amazon retai",
+      "amazonmktplc"], "Compras Online"),
     # Farmácia
     (["farmacia", "farmácia", "drogaria", "ultrafarma", "pacheco",
       "pague menos", "raia drogasil", "drogasil", "droga raia",
       "sao joao", "são joão", "nissei"], "Farmácia"),
+    # Pet
+    (["petlove", "cobasi", "petz ", "petshop", "pet shop", "petco",
+      "clinica vet", "veterinario", "veterinária", "vet "], "Pet"),
     # Academia
     (["smartfit", "bluefit", "academia", "crossfit",
       "bodytech", "bio ritmo", "fórmula academia"], "Academia"),
@@ -33,14 +44,25 @@ _HEURISTICS: list[tuple[list[str], str]] = [
     (["posto ", "combustivel", "combustível", "gasolina", "shell",
       "ipiranga", "petrobras", "br distribuidora",
       "ale combustivel", "ale combustível"], "Combustível"),
+    # Auto/Manutenção veicular
+    (["mecanica", "mecânica", "auto center", "centro automotivo",
+      "borracharia", "troca de oleo", "troca de óleo", "springer carr",
+      "lavagem auto", "detailing", "oficina "], "Auto/Manutenção"),
     # Telefone / Internet
-    (["vivo", "claro ", "tim ", "oi internet", "net combo", "net claro",
+    (["vivo ", "vivo\t", "claro ", "tim ", "oi internet", "net combo", "net claro",
       "sky ", "embratel", "gvt ", "vivo fibra", "claro fibra",
       "tim fibra", "anatel"], "Telefone/Internet"),
     # Supermercado — nomes comuns de redes
     (["supermercado", "carrefour", "extra ", "assai", "assaí", "atacadao",
       "atacadão", "pao de acucar", "pão de açúcar", "hortifruti",
-      "bistek", "sams club", "costco"], "Supermercado"),
+      "bistek", "sams club", "costco", "amigao", "amigão"], "Supermercado"),
+    # Viagem
+    (["hotel ", "pousada", "hostel", "airbnb", "booking", "expedia",
+      "decolar", "latam", "gol linhas", "azul linhas", "embraer"], "Viagem"),
+    # Seguros
+    (["seguro de vida", "seguro auto", "seguro residencial", "yelum",
+      "porto seguro", "suhai", "mapfre", "bradesco seguro",
+      "itau seguro", "caixa seguro", "tokio marine", "seguro"], "Seguros"),
     # Salário
     (["recebimento de proventos", "salário", "salario",
       "folha de pagamento", "fgts", "rescisao"], "Salário"),
@@ -50,8 +72,9 @@ _HEURISTICS: list[tuple[list[str], str]] = [
     # Boletos
     (["pagamento de boleto", "boleto bancário", "boleto bancario",
       "darf", "gru tributo"], "Boletos"),
-    # Seguros
-    (["seguro de vida", "seguro auto", "seguro residencial", "seguro"], "Seguros"),
+    # Pix/Transferência
+    (["pix enviado", "pix recebido", "transf pix", "transferencia pix",
+      "transferência pix", "ted ", "doc "], "Pix/Transferência"),
     # Juros / tarifas
     (["juros", "i.o.f", "iof ", "tarifa bancaria",
       "tarifa bancária", "multa"], "Juros/IOF"),
