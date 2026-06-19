@@ -30,6 +30,7 @@ interface Transacao {
   destino?: string | null;
   categoria_id?: number;
   categoria?: Categoria;
+  fonte?: string;
 }
 
 interface UberResumo {
@@ -350,8 +351,14 @@ const UberPage: React.FC<Props> = ({ ano, mes }) => {
                       {formatCurrency(tx.valor)}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button onClick={() => handleEditClick(tx)} style={styles.actionButton}>✏️ Editar</button>
-                      <button onClick={() => handleDelete(tx.id)} style={{ ...styles.actionButton, color: 'var(--color-error)' }}>🗑️ Excluir</button>
+                      {tx.fonte === 'fatura' ? (
+                        <span style={styles.faturaTag}>Fatura</span>
+                      ) : (
+                        <>
+                          <button onClick={() => handleEditClick(tx)} style={styles.actionButton}>Editar</button>
+                          <button onClick={() => handleDelete(tx.id)} style={{ ...styles.actionButton, color: 'var(--color-error)' }}>Excluir</button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -494,6 +501,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '6px',
     borderRadius: '6px',
     margin: '0 2px',
+  },
+  faturaTag: {
+    background: '#E3F2FD',
+    color: '#1565C0',
+    borderRadius: 4,
+    padding: '2px 8px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
   },
   modalOverlay: {
     position: 'fixed',

@@ -12,6 +12,7 @@ from app.database import get_db
 from app.faturas import service as fatura_svc
 from app.faturas.repository import FaturaRepository
 from app.faturas.schemas import (
+    AddLancamentoRequest,
     FaturaResponse,
     FaturaResumo,
     LancamentoFaturaResponse,
@@ -364,9 +365,53 @@ async def atualizar_lancamento(
     lf = await repo.get_lancamento(lancamento_id)
     if not lf:
         raise HTTPException(status_code=404, detail="Lançamento não encontrado.")
-    lf.categoria_id = body.categoria_id
+    fatura_id = lf.fatura_id
+    if "categoria_id" in body.model_fields_set:
+        lf.categoria_id = body.categoria_id
+    if body.descricao is not None:
+        lf.descricao = body.descricao[:255]
+    if body.valor is not None:
+        lf.valor = body.valor
+    if body.data is not None:
+        lf.data = body.data
     await db.commit()
+    await repo.recalcular_total(fatura_id)
     return {"id": lf.id, "categoria_id": lf.categoria_id}
+
+
+@router.delete("/faturas/lancamentos/{lancamento_id}", status_code=204)
+async def deletar_lancamento(
+    lancamento_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    repo = FaturaRepository(db)
+    lf = await repo.get_lancamento(lancamento_id)
+    if not lf:
+        raise HTTPException(status_code=404, detail="Lançamento não encontrado.")
+    fatura_id = lf.fatura_id
+    await db.delete(lf)
+    await db.commit()
+    await repo.recalcular_total(fatura_id)
+
+
+@router.post("/faturas/{fatura_id}/lancamentos", status_code=201)
+async def adicionar_lancamento(
+    fatura_id: int,
+    body: AddLancamentoRequest,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    repo = FaturaRepository(db)
+    row = await repo.get_com_cartao(fatura_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Fatura não encontrada.")
+    lf = await repo.criar_lancamento_unico(
+        fatura_id, body.data, body.descricao, body.valor, body.categoria_id
+    )
+    await db.commit()
+    await repo.recalcular_total(fatura_id)
+    return {"id": lf.id}
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

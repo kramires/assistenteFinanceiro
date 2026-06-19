@@ -22,6 +22,18 @@ class CategoriaService:
                 detail="Já existe uma categoria com este nome.",
             )
 
+    async def atualizar(self, id: int, nome: str, tipo: str) -> Categoria:
+        cat = await self.repo.buscar_por_id(id)
+        if not cat:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoria não encontrada.")
+        try:
+            return await self.repo.atualizar(cat, nome, tipo)
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe uma categoria com este nome.",
+            )
+
     async def excluir(self, id: int) -> None:
         cat = await self.repo.buscar_por_id(id)
         if not cat:
@@ -50,4 +62,4 @@ class CategoriaService:
             cat = await self.repo.buscar_por_nome(nome)
             if cat:
                 return cat
-        return await self.obter_ou_criar("Transporte Alternativo", "despesa")
+        return await self.obter_ou_criar("Transporte por Aplicativo", "despesa")

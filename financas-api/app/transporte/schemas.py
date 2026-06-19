@@ -18,6 +18,7 @@ class TransacaoTransporte(BaseModel):
     destino: str | None
     categoria_id: int | None
     categoria: CategoriaEmbed | None
+    fonte: str = "extrato"  # "extrato" | "fatura"
 
     model_config = {"from_attributes": True}
 

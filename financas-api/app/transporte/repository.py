@@ -3,9 +3,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.categorias.models import Categoria
 from app.domain.transporte import TRANSPORTE_APP_CALC
+from app.faturas.models import LancamentoFatura
 from app.transacoes.models import Transacao
 
 _CALC_LOWER = [n.lower() for n in TRANSPORTE_APP_CALC]
+
+
+def _fatura_transport_filter():
+    """OR: categoria.nome in transport set OR descricao ilike any transport keyword."""
+    cat_match = func.lower(Categoria.nome).in_(_CALC_LOWER)
+    desc_matches = [LancamentoFatura.descricao.ilike(f"%{n}%") for n in TRANSPORTE_APP_CALC]
+    return or_(cat_match, *desc_matches)
 
 
 def _transporte_filter():
@@ -118,3 +126,73 @@ class TransporteRepository:
                 "percentual_uber_despesas": round(pct, 2),
             })
         return result
+
+    # ── fatura sources ────────────────────────────────────────────────────────
+
+    async def listar_transacoes_fatura(self, ano: int, mes: int) -> list[tuple]:
+        """Lancamentos_fatura de transporte para o mes/ano pelo data do lancamento."""
+        q = (
+            select(LancamentoFatura, Categoria)
+            .outerjoin(Categoria, LancamentoFatura.categoria_id == Categoria.id)
+            .where(
+                extract("year", LancamentoFatura.data) == ano,
+                extract("month", LancamentoFatura.data) == mes,
+                LancamentoFatura.valor > 0,
+                _fatura_transport_filter(),
+            )
+            .order_by(LancamentoFatura.data.desc())
+        )
+        return (await self.db.execute(q)).all()
+
+    async def resumo_fatura(self, ano: int, mes: int) -> dict:
+        """Totais de transporte vindo de lancamentos_fatura."""
+        q_mes = (
+            select(
+                func.coalesce(func.sum(LancamentoFatura.valor), 0).label("total_mes"),
+                func.count(LancamentoFatura.id).label("quantidade_mes"),
+            )
+            .outerjoin(Categoria, LancamentoFatura.categoria_id == Categoria.id)
+            .where(
+                extract("year", LancamentoFatura.data) == ano,
+                extract("month", LancamentoFatura.data) == mes,
+                LancamentoFatura.valor > 0,
+                _fatura_transport_filter(),
+            )
+        )
+        row_mes = (await self.db.execute(q_mes)).one()
+
+        q_ano = (
+            select(func.coalesce(func.sum(LancamentoFatura.valor), 0).label("total_ano"))
+            .outerjoin(Categoria, LancamentoFatura.categoria_id == Categoria.id)
+            .where(
+                extract("year", LancamentoFatura.data) == ano,
+                LancamentoFatura.valor > 0,
+                _fatura_transport_filter(),
+            )
+        )
+        row_ano = (await self.db.execute(q_ano)).one()
+
+        return {
+            "total_mes": float(row_mes.total_mes),
+            "total_ano": float(row_ano.total_ano),
+            "quantidade_mes": int(row_mes.quantidade_mes),
+        }
+
+    async def evolucao_fatura_mensal(self, ano: int) -> dict[str, float]:
+        """Soma mensal de transporte de faturas: {YYYY-MM: total}."""
+        q = (
+            select(
+                extract("year", LancamentoFatura.data).label("yr"),
+                extract("month", LancamentoFatura.data).label("mo"),
+                func.coalesce(func.sum(LancamentoFatura.valor), 0).label("total"),
+            )
+            .outerjoin(Categoria, LancamentoFatura.categoria_id == Categoria.id)
+            .where(
+                extract("year", LancamentoFatura.data) == ano,
+                LancamentoFatura.valor > 0,
+                _fatura_transport_filter(),
+            )
+            .group_by(extract("year", LancamentoFatura.data), extract("month", LancamentoFatura.data))
+        )
+        rows = (await self.db.execute(q)).all()
+        return {f"{int(r.yr):04d}-{int(r.mo):02d}": float(r.total) for r in rows}

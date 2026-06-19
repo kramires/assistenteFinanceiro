@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from pydantic import BaseModel
 
 
@@ -49,4 +50,14 @@ class PagarFaturaRequest(BaseModel):
 
 
 class PatchLancamentoRequest(BaseModel):
+    categoria_id: int | None = None
+    descricao: str | None = None
+    valor: Decimal | None = None
+    data: date | None = None
+
+
+class AddLancamentoRequest(BaseModel):
+    data: date
+    descricao: str
+    valor: Decimal
     categoria_id: int | None = None

@@ -15,7 +15,7 @@ _HEURISTICS: list[tuple[list[str], str]] = [
       "james delivery", "aiqfome", "goomer"], "Delivery"),
     # Transporte por app — antes de "uber" genérico
     (["uber", "99 pop", "99cab", "99taxi", "cabify", "indriver",
-      "taxi", "táxi"], "Transporte Alternativo"),
+      "taxi", "táxi"], "Transporte por Aplicativo"),
     (["transporte escolar"], "Transporte Escolar"),
     # Streamings — antes de amazon genérico
     (["netflix", "spotify", "disney", "amazon prime", "primevideo", "globoplay",

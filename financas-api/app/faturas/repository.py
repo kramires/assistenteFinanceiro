@@ -175,6 +175,37 @@ class FaturaRepository:
             f.saldo_parcelado = saldo_parcelado
             await self.db.commit()
 
+    async def recalcular_total(self, fatura_id: int) -> None:
+        from sqlalchemy import text
+        result = await self.db.execute(
+            text("SELECT COALESCE(SUM(valor), 0) FROM lancamentos_fatura WHERE fatura_id = :fid"),
+            {"fid": fatura_id},
+        )
+        novo_total = Decimal(str(result.scalar() or 0))
+        f = await self.db.get(FaturaCartao, fatura_id)
+        if f:
+            f.valor_total = novo_total
+            await self.db.commit()
+
+    async def criar_lancamento_unico(
+        self,
+        fatura_id: int,
+        data: date,
+        descricao: str,
+        valor: Decimal,
+        categoria_id: int | None,
+    ) -> LancamentoFatura:
+        lf = LancamentoFatura(
+            fatura_id=fatura_id,
+            data=data,
+            descricao=descricao[:255],
+            valor=valor,
+            categoria_id=categoria_id,
+        )
+        self.db.add(lf)
+        await self.db.flush()
+        return lf
+
     async def listar_faturas_abertas(self) -> list[tuple]:
         q = (
             select(FaturaCartao, CartaoCredito.nome.label("cartao_nome"))

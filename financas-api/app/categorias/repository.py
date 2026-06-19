@@ -28,6 +28,13 @@ class CategoriaRepository:
         await self.db.refresh(cat)
         return cat
 
+    async def atualizar(self, cat: Categoria, nome: str, tipo: str) -> Categoria:
+        cat.nome = nome
+        cat.tipo = tipo
+        await self.db.commit()
+        await self.db.refresh(cat)
+        return cat
+
     async def excluir(self, cat: Categoria) -> None:
         await self.db.delete(cat)
         await self.db.commit()

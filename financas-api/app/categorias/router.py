@@ -31,6 +31,16 @@ async def criar(
     return await svc.criar(body.nome, body.tipo)
 
 
+@router.put("/{id}", response_model=CategoriaResponse)
+async def atualizar(
+    id: int,
+    body: CategoriaCreate,
+    svc: CategoriaService = Depends(_service),
+    _: str = Depends(get_current_user),
+):
+    return await svc.atualizar(id, body.nome, body.tipo)
+
+
 @router.delete("/{id}", status_code=204)
 async def excluir(
     id: int,
