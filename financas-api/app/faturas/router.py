@@ -22,6 +22,20 @@ from app.faturas.schemas import (
 router = APIRouter(tags=["faturas"])
 
 
+def _meses_range(n: int) -> list[str]:
+    """Retorna os últimos n meses no formato YYYY-MM, do mais antigo ao mais recente."""
+    from datetime import date as _date
+    today = _date.today()
+    result = []
+    for i in range(n - 1, -1, -1):
+        y, m = today.year, today.month - i
+        while m <= 0:
+            m += 12
+            y -= 1
+        result.append(f"{y:04d}-{m:02d}")
+    return result
+
+
 # ── rotas estáticas ANTES das parametrizadas ──────────────────────────────────
 
 
@@ -83,6 +97,34 @@ async def parcelas_futuras(
         }
         for mes, cartoes in sorted(agregado.items())
     ]
+
+
+@router.get("/faturas/evolucao-mensal")
+async def evolucao_mensal_cartoes(
+    meses: int = 6,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    """Retorna o total de gastos no cartão por mês nos últimos N meses."""
+    repo = FaturaRepository(db)
+    resultado = []
+    for mes_str in _meses_range(min(max(meses, 1), 24)):
+        rows = await repo.listar_lancamentos_por_mes(mes_str)
+        total = round(sum(float(r.LancamentoFatura.valor) for r in rows), 2)
+        por_cat: dict[str, float] = {}
+        for r in rows:
+            cat = r.categoria_nome or "Outros"
+            por_cat[cat] = round(por_cat.get(cat, 0.0) + float(r.LancamentoFatura.valor), 2)
+        resultado.append({
+            "mes": mes_str,
+            "total": total,
+            "por_categoria": sorted(
+                [{"categoria": k, "total": v} for k, v in por_cat.items()],
+                key=lambda x: x["total"],
+                reverse=True,
+            ),
+        })
+    return resultado
 
 
 @router.get("/faturas/dashboard")

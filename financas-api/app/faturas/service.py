@@ -200,7 +200,7 @@ async def pagar_fatura(
     body = TransacaoCreate(
         data=data_pagamento or date.today(),
         descricao=f"Fatura {cartao_nome} {fatura.mes_referencia}",
-        valor=fatura.valor_total,
+        valor=-abs(fatura.valor_total),  # pagamento de fatura é sempre despesa (saída de dinheiro)
         categoria_id=categoria_id,
         origem="fatura",
     )

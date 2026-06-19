@@ -2,14 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    env_file: financas.env
     environment:
       POSTGRES_DB: financas
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d financas"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d financas"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -18,8 +17,6 @@ services:
     build: ./financas-api
     restart: unless-stopped
     env_file: financas.env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/financas
     depends_on:
       postgres:
         condition: service_healthy

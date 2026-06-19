@@ -108,7 +108,14 @@ async def processar_extrato(raw_bytes: bytes, db: AsyncSession) -> str:
 
             cache[cache_key] = categoria_nome
 
-        tipo = "rendimento" if row["valor"] > 0 else "despesa"
+        # Pagamentos de fatura são sempre despesa independente do sinal no CSV
+        if categoria_nome == "Cartão de Crédito":
+            tipo = "despesa"
+            valor_tx = -abs(row["valor"])
+        else:
+            tipo = "rendimento" if row["valor"] > 0 else "despesa"
+            valor_tx = row["valor"]
+
         categoria = await cat_svc.obter_ou_criar(categoria_nome, tipo)
 
         from app.transacoes.schemas import TransacaoCreate
@@ -117,7 +124,7 @@ async def processar_extrato(raw_bytes: bytes, db: AsyncSession) -> str:
         body = TransacaoCreate(
             data=row["data"],
             descricao=row["descricao"],
-            valor=Decimal(str(row["valor"])),
+            valor=Decimal(str(valor_tx)),
             categoria_id=categoria.id,
         )
         await tx_svc.criar(body)

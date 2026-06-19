@@ -41,3 +41,15 @@ class AlertasResponse(BaseModel):
 class ResumoNarrativoResponse(BaseModel):
     texto: str | None = None
     erro: str | None = None
+
+
+class AnaliseFinanceiraResponse(BaseModel):
+    resumo_executivo: str | None = None
+    nota_saude_financeira: float | None = None
+    pontos_de_atencao: list[str] = []
+    maiores_gastos_analise: list[str] = []
+    recomendacoes: list[str] = []
+    meta_poupanca_sugerida: str | None = None
+    distribuicao_ideal: dict = {}
+    gerado_em: str | None = None
+    erro: str | None = None

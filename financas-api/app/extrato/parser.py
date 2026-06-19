@@ -85,6 +85,14 @@ def parse_csv(raw_bytes: bytes) -> list[dict]:
         if data_final is None or valor_final is None:
             continue
 
+        # BB CSV pode exportar todos os valores como positivos com coluna "Tipo Lançamento" = "D" (débito) / "C" (crédito).
+        # Débito = dinheiro saindo da conta → deve ser negativo.
+        if col_map["Tipo"]:
+            tipo_str = str(row[col_map["Tipo"]] or "").strip().lower()
+            _DEBITO_MARKERS = ("d", "deb", "déb", "debito", "débito", "debit")
+            if tipo_str in _DEBITO_MARKERS and valor_final > 0:
+                valor_final = -valor_final
+
         descricao_final = f"{descricao} - {detalhe}" if detalhe else descricao
         descricao_final = descricao_final[:255]
 
