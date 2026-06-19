@@ -140,6 +140,41 @@ class FaturaRepository:
         result = await self.db.execute(q)
         return result.all()
 
+    async def buscar_por_cartao_mes(
+        self, cartao_id: int, mes_referencia: str
+    ) -> FaturaCartao | None:
+        result = await self.db.execute(
+            select(FaturaCartao).where(
+                FaturaCartao.cartao_id == cartao_id,
+                FaturaCartao.mes_referencia == mes_referencia,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def listar_chaves_lancamentos(self, fatura_id: int) -> set[tuple]:
+        """Retorna set de (data_str, descricao, valor_round, parcela_atual) para deduplicação."""
+        result = await self.db.execute(
+            select(
+                LancamentoFatura.data,
+                LancamentoFatura.descricao,
+                LancamentoFatura.valor,
+                LancamentoFatura.parcela_atual,
+            ).where(LancamentoFatura.fatura_id == fatura_id)
+        )
+        return {
+            (str(row.data), row.descricao, round(float(row.valor), 2), row.parcela_atual)
+            for row in result.all()
+        }
+
+    async def atualizar_totais(
+        self, fatura_id: int, valor_total: Decimal, saldo_parcelado: Decimal
+    ) -> None:
+        f = await self.db.get(FaturaCartao, fatura_id)
+        if f:
+            f.valor_total = valor_total
+            f.saldo_parcelado = saldo_parcelado
+            await self.db.commit()
+
     async def listar_faturas_abertas(self) -> list[tuple]:
         q = (
             select(FaturaCartao, CartaoCredito.nome.label("cartao_nome"))

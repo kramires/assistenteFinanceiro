@@ -83,6 +83,27 @@ async def importar_pdf(
     return await _persistir(lancamentos_raw, None, cartao_id, mes_referencia, data_vencimento, db)
 
 
+def _chave_lancamento(l: dict) -> tuple:
+    return (
+        str(l["data"]),
+        l["descricao"][:255],
+        round(float(l["valor"]), 2),
+        l.get("parcela_atual"),
+    )
+
+
+async def _categorizar_lote(
+    lancamentos: list[dict],
+    categorias: dict[str, int],
+    sem: asyncio.Semaphore,
+    cache: dict[str, int | None],
+) -> None:
+    tasks = [_resolver_categoria(l["descricao"], cache, categorias, sem) for l in lancamentos]
+    cat_ids = await asyncio.gather(*tasks)
+    for l, cat_id in zip(lancamentos, cat_ids):
+        l["categoria_id"] = cat_id
+
+
 async def _persistir(
     lancamentos_raw: list[dict],
     saldo_parcelado: Decimal | None,
@@ -98,14 +119,44 @@ async def _persistir(
     sem = asyncio.Semaphore(_CATEGORIZE_CONCURRENCY)
     cache: dict[str, int | None] = {}
 
-    tasks = [
-        _resolver_categoria(l["descricao"], cache, categorias, sem)
-        for l in lancamentos_raw
-    ]
-    cat_ids = await asyncio.gather(*tasks)
+    repo = FaturaRepository(db)
+    fatura_existente = await repo.buscar_por_cartao_mes(cartao_id, mes_referencia)
 
-    for l, cat_id in zip(lancamentos_raw, cat_ids):
-        l["categoria_id"] = cat_id
+    if fatura_existente:
+        # ── Upsert: adiciona apenas lançamentos ainda não existentes ──────────
+        chaves_existentes = await repo.listar_chaves_lancamentos(fatura_existente.id)
+        novos = [l for l in lancamentos_raw if _chave_lancamento(l) not in chaves_existentes]
+
+        if not novos:
+            return {
+                "fatura_id": fatura_existente.id,
+                "mes_referencia": mes_referencia,
+                "total_lancamentos": 0,
+                "valor_total": float(fatura_existente.valor_total),
+                "mensagem": "Fatura já atualizada. Nenhum lançamento novo encontrado.",
+            }
+
+        await _categorizar_lote(novos, categorias, sem, cache)
+        await repo.adicionar_lancamentos(fatura_existente.id, novos)
+
+        novo_valor = fatura_existente.valor_total + Decimal(str(sum(l["valor"] for l in novos)))
+        novo_parcelado = fatura_existente.saldo_parcelado + Decimal(str(sum(
+            l["valor"] for l in novos
+            if l.get("total_parcelas") and l.get("parcela_atual")
+            and l["parcela_atual"] < l["total_parcelas"]
+        )))
+        await repo.atualizar_totais(fatura_existente.id, novo_valor, novo_parcelado)
+
+        return {
+            "fatura_id": fatura_existente.id,
+            "mes_referencia": mes_referencia,
+            "total_lancamentos": len(novos),
+            "valor_total": float(novo_valor),
+            "mensagem": f"{len(novos)} novo(s) lançamento(s) adicionado(s). {len(chaves_existentes)} já existiam.",
+        }
+
+    # ── Fatura nova ───────────────────────────────────────────────────────────
+    await _categorizar_lote(lancamentos_raw, categorias, sem, cache)
 
     valor_total = Decimal(str(sum(l["valor"] for l in lancamentos_raw)))
     total_parcelado = Decimal(str(sum(
@@ -113,7 +164,6 @@ async def _persistir(
         if l.get("total_parcelas") and l.get("parcela_atual") and l["parcela_atual"] < l["total_parcelas"]
     )))
 
-    repo = FaturaRepository(db)
     fatura = await repo.criar_fatura(
         cartao_id=cartao_id,
         mes_referencia=mes_referencia,
@@ -129,6 +179,7 @@ async def _persistir(
         "mes_referencia": mes_referencia,
         "total_lancamentos": len(lancamentos_raw),
         "valor_total": float(valor_total),
+        "mensagem": f"Fatura criada com {len(lancamentos_raw)} lançamento(s).",
     }
 
 

@@ -10,14 +10,51 @@ from app.transacoes.service import TransacaoService
 
 
 _HEURISTICS: list[tuple[list[str], str]] = [
-    (["uber", "99 ", "taxi", "táxi"], "Transporte Alternativo"),
+    # Delivery — antes de Alimentação para não cair em "Alimentação"
+    (["ifood", "i food", "99food", "rappi", "uber eats", "ubereats",
+      "james delivery", "aiqfome", "goomer"], "Delivery"),
+    # Transporte por app — antes de "uber" genérico
+    (["uber", "99 pop", "99cab", "99taxi", "cabify", "indriver",
+      "taxi", "táxi"], "Transporte Alternativo"),
     (["transporte escolar"], "Transporte Escolar"),
-    (["recebimento de proventos", "salário", "salario"], "Salário"),
-    (["pix"], "Pix"),
-    (["compra com cartão", "cartão de crédito", "cartao de credito"], "Cartão de Crédito"),
-    (["pagamento de boleto", "boleto"], "Boletos"),
-    (["seguro de vida", "seguro"], "Seguros"),
-    (["juros", "i.o.f", "iof"], "Juros/IOF"),
+    # Streamings
+    (["netflix", "spotify", "disney", "amazon prime", "primevideo", "globoplay",
+      "hbo max", "hbomax", "paramount", "apple tv", "apple one", "apple music",
+      "crunchyroll", "youtube premium", "star+", "star plus", "deezer",
+      "microsoft 365", "office 365", "max streaming"], "Streamings"),
+    # Farmácia
+    (["farmacia", "farmácia", "drogaria", "ultrafarma", "pacheco",
+      "pague menos", "raia drogasil", "drogasil", "droga raia",
+      "sao joao", "são joão", "nissei"], "Farmácia"),
+    # Academia
+    (["smartfit", "bluefit", "academia", "crossfit",
+      "bodytech", "bio ritmo", "fórmula academia"], "Academia"),
+    # Combustível
+    (["posto ", "combustivel", "combustível", "gasolina", "shell",
+      "ipiranga", "petrobras", "br distribuidora",
+      "ale combustivel", "ale combustível"], "Combustível"),
+    # Telefone / Internet
+    (["vivo", "claro ", "tim ", "oi internet", "net combo", "net claro",
+      "sky ", "embratel", "gvt ", "vivo fibra", "claro fibra",
+      "tim fibra", "anatel"], "Telefone/Internet"),
+    # Supermercado — nomes comuns de redes
+    (["supermercado", "carrefour", "extra ", "assai", "assaí", "atacadao",
+      "atacadão", "pao de acucar", "pão de açúcar", "hortifruti",
+      "bistek", "sams club", "costco"], "Supermercado"),
+    # Salário
+    (["recebimento de proventos", "salário", "salario",
+      "folha de pagamento", "fgts", "rescisao"], "Salário"),
+    # Cartão de crédito (pagamento de fatura)
+    (["compra com cartão", "cartão de crédito", "cartao de credito",
+      "fatura cartao", "fatura cartão", "pgto cartao"], "Cartão de Crédito"),
+    # Boletos
+    (["pagamento de boleto", "boleto bancário", "boleto bancario",
+      "darf", "gru tributo"], "Boletos"),
+    # Seguros
+    (["seguro de vida", "seguro auto", "seguro residencial", "seguro"], "Seguros"),
+    # Juros / tarifas
+    (["juros", "i.o.f", "iof ", "tarifa bancaria",
+      "tarifa bancária", "multa"], "Juros/IOF"),
 ]
 
 
