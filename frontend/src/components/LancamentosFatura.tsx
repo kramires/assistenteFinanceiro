@@ -73,21 +73,35 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId) return;
+    if (!editingId || !fatura) return;
     setSaving(true);
     try {
+      const newValor = parseFloat(editFields.valor) || 0;
       await apiFetch(`${API_BASE}/faturas/lancamentos/${editingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           data: editFields.data,
           descricao: editFields.descricao,
-          valor: parseFloat(editFields.valor) || 0,
+          valor: newValor,
           categoria_id: editFields.categoria_id,
         }),
       });
+      const catNome = categorias.find(c => c.id === editFields.categoria_id)?.nome ?? null;
+      const oldValor = fatura.lancamentos.find(l => l.id === editingId)?.valor ?? 0;
+      setFatura(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          valor_total: parseFloat((prev.valor_total + newValor - oldValor).toFixed(2)),
+          lancamentos: prev.lancamentos.map(l =>
+            l.id === editingId
+              ? { ...l, data: editFields.data, descricao: editFields.descricao, valor: newValor, categoria_id: editFields.categoria_id, categoria_nome: catNome }
+              : l
+          ),
+        };
+      });
       setEditingId(null);
-      await load();
     } finally {
       setSaving(false);
     }
@@ -98,7 +112,15 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
     setSaving(true);
     try {
       await apiFetch(`${API_BASE}/faturas/lancamentos/${id}`, { method: 'DELETE' });
-      await load();
+      setFatura(prev => {
+        if (!prev) return prev;
+        const removido = prev.lancamentos.find(l => l.id === id);
+        return {
+          ...prev,
+          valor_total: parseFloat((prev.valor_total - (removido?.valor ?? 0)).toFixed(2)),
+          lancamentos: prev.lancamentos.filter(l => l.id !== id),
+        };
+      });
     } finally {
       setSaving(false);
     }
