@@ -266,6 +266,8 @@ async def importar_fatura(
     cartao_id: int = Form(...),
     mes_referencia: str = Form(...),
     data_vencimento: str | None = Form(None),
+    substituir: bool = Form(False),
+    ignorar_validacao: bool = Form(False),
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_user),
 ):
@@ -285,15 +287,26 @@ async def importar_fatura(
         except ValueError:
             pass
 
-    if filename.endswith(".csv"):
-        return await fatura_svc.importar_csv(content, cartao_id, mes_referencia, vencimento, db)
-    elif filename.endswith(".pdf"):
-        return await fatura_svc.importar_pdf(content, cartao_id, mes_referencia, vencimento, db)
-    else:
+    try:
+        if filename.endswith(".csv"):
+            return await fatura_svc.importar_csv(
+                content, cartao_id, mes_referencia, vencimento, db, substituir=substituir
+            )
+        elif filename.endswith(".pdf"):
+            return await fatura_svc.importar_pdf(
+                content, cartao_id, mes_referencia, vencimento, db,
+                substituir=substituir, ignorar_validacao=ignorar_validacao,
+            )
+    except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Arquivo deve ser .csv ou .pdf",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
         )
+
+    raise HTTPException(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        detail="Arquivo deve ser .csv ou .pdf",
+    )
 
 
 # ── detalhe ───────────────────────────────────────────────────────────────────
@@ -407,7 +420,8 @@ async def adicionar_lancamento(
     if not row:
         raise HTTPException(status_code=404, detail="Fatura não encontrada.")
     lf = await repo.criar_lancamento_unico(
-        fatura_id, body.data, body.descricao, body.valor, body.categoria_id
+        fatura_id, body.data, body.descricao, body.valor, body.categoria_id,
+        parcela_atual=body.parcela_atual, total_parcelas=body.total_parcelas,
     )
     await db.commit()
     await repo.recalcular_total(fatura_id)

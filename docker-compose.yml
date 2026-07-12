@@ -21,7 +21,8 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${FINANCAS_API_PORT:-18001}:8001"
+      # Bind apenas no localhost: acesso externo passa pelo nginx (com rate limit)
+      - "127.0.0.1:${FINANCAS_API_PORT:-18001}:8001"
 
   ia-api:
     build: ./ia-api

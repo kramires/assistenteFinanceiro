@@ -61,3 +61,5 @@ class AddLancamentoRequest(BaseModel):
     descricao: str
     valor: Decimal
     categoria_id: int | None = None
+    parcela_atual: int | None = None
+    total_parcelas: int | None = None

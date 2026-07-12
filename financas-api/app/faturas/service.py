@@ -61,9 +61,13 @@ async def importar_csv(
     mes_referencia: str,
     data_vencimento: date | None,
     db: AsyncSession,
+    substituir: bool = False,
 ) -> dict:
     lancamentos_raw = nubank_csv.parse(content)
-    return await _persistir(lancamentos_raw, None, cartao_id, mes_referencia, data_vencimento, db)
+    return await _persistir(
+        lancamentos_raw, None, cartao_id, mes_referencia, data_vencimento, db,
+        substituir=substituir,
+    )
 
 
 async def importar_pdf(
@@ -72,9 +76,22 @@ async def importar_pdf(
     mes_referencia: str,
     data_vencimento: date | None,
     db: AsyncSession,
+    substituir: bool = False,
+    ignorar_validacao: bool = False,
 ) -> dict:
     result = await bb_pdf.parse(content, mes_referencia)
     lancamentos_raw = result.get("transacoes", [])
+
+    # ── Validação: soma extraída pela IA deve bater com o total impresso no PDF ──
+    total_pdf = result.get("total_pdf")
+    if total_pdf is not None and not ignorar_validacao:
+        soma = round(sum(float(l.get("valor", 0)) for l in lancamentos_raw), 2)
+        if abs(soma - total_pdf) > 0.05:
+            raise ValueError(
+                f"Extração divergente: os {len(lancamentos_raw)} lançamentos extraídos somam "
+                f"R$ {soma:.2f}, mas o total impresso na fatura é R$ {total_pdf:.2f}. "
+                f"Nada foi importado. Tente novamente ou envie ignorar_validacao=true para forçar."
+            )
 
     if not data_vencimento and result.get("vencimento"):
         try:
@@ -89,7 +106,10 @@ async def importar_pdf(
             except ValueError:
                 l["data"] = date.today()
 
-    return await _persistir(lancamentos_raw, None, cartao_id, mes_referencia, data_vencimento, db)
+    return await _persistir(
+        lancamentos_raw, None, cartao_id, mes_referencia, data_vencimento, db,
+        substituir=substituir,
+    )
 
 
 def _chave_lancamento(l: dict) -> tuple:
@@ -120,6 +140,7 @@ async def _persistir(
     mes_referencia: str,
     data_vencimento: date | None,
     db: AsyncSession,
+    substituir: bool = False,
 ) -> dict:
     cat_repo = CategoriaRepository(db)
     cats_list = await cat_repo.listar()
@@ -130,6 +151,31 @@ async def _persistir(
 
     repo = FaturaRepository(db)
     fatura_existente = await repo.buscar_por_cartao_mes(cartao_id, mes_referencia)
+
+    if fatura_existente and substituir:
+        # ── Substituição: apaga tudo e regrava a fatura do zero ───────────────
+        removidos = await repo.deletar_lancamentos(fatura_existente.id)
+        await _categorizar_lote(lancamentos_raw, categorias, sem, cache)
+        await repo.adicionar_lancamentos(fatura_existente.id, lancamentos_raw)
+
+        valor_total = Decimal(str(sum(l["valor"] for l in lancamentos_raw)))
+        total_parcelado = Decimal(str(sum(
+            l["valor"] for l in lancamentos_raw
+            if l.get("total_parcelas") and l.get("parcela_atual")
+            and l["parcela_atual"] < l["total_parcelas"]
+        )))
+        await repo.atualizar_totais(fatura_existente.id, valor_total, saldo_parcelado or total_parcelado)
+
+        return {
+            "fatura_id": fatura_existente.id,
+            "mes_referencia": mes_referencia,
+            "total_lancamentos": len(lancamentos_raw),
+            "valor_total": float(valor_total),
+            "mensagem": (
+                f"Fatura substituída: {removidos} lançamento(s) antigo(s) removido(s), "
+                f"{len(lancamentos_raw)} novo(s) gravado(s)."
+            ),
+        }
 
     if fatura_existente:
         # ── Upsert: adiciona apenas lançamentos ainda não existentes ──────────

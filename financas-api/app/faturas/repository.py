@@ -187,6 +187,15 @@ class FaturaRepository:
             f.valor_total = novo_total
             await self.db.commit()
 
+    async def deletar_lancamentos(self, fatura_id: int) -> int:
+        """Remove todos os lançamentos de uma fatura. Retorna quantos foram removidos."""
+        from sqlalchemy import delete
+        result = await self.db.execute(
+            delete(LancamentoFatura).where(LancamentoFatura.fatura_id == fatura_id)
+        )
+        await self.db.flush()
+        return result.rowcount or 0
+
     async def criar_lancamento_unico(
         self,
         fatura_id: int,
@@ -194,6 +203,8 @@ class FaturaRepository:
         descricao: str,
         valor: Decimal,
         categoria_id: int | None,
+        parcela_atual: int | None = None,
+        total_parcelas: int | None = None,
     ) -> LancamentoFatura:
         lf = LancamentoFatura(
             fatura_id=fatura_id,
@@ -201,6 +212,8 @@ class FaturaRepository:
             descricao=descricao[:255],
             valor=valor,
             categoria_id=categoria_id,
+            parcela_atual=parcela_atual,
+            total_parcelas=total_parcelas,
         )
         self.db.add(lf)
         await self.db.flush()

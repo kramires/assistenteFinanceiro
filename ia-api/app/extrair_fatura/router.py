@@ -34,7 +34,7 @@ async def extrair_fatura(body: ExtrairFaturaRequest):
             "content": (
                 f"Ano de referência: {body.ano}\n"
                 f"Mês: {body.mes_referencia}\n\n"
-                f"Texto da fatura:\n{body.texto[:10000]}"
+                f"Texto da fatura:\n{body.texto[:100000]}"
             ),
         },
     ]
