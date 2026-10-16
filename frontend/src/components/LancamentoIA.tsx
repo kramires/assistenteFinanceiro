@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { API_BASE } from '../config';
-import { apiFetch } from '../api';
+import { apiFetch, ERRO_REDE } from '../api';
 
 interface Props {
   onLancamentoFeito: () => void;
@@ -46,7 +46,7 @@ const LancamentoIA: React.FC<Props> = ({ onLancamentoFeito }) => {
       })
       .catch(err => {
         const raw = err.message || 'Erro desconhecido';
-        setStatusMsg('Erro: ' + (raw === 'Failed to fetch' ? 'Verifique sua conexão ou a chave da OpenAI.' : raw));
+        setStatusMsg('Erro: ' + (raw === 'Failed to fetch' ? ERRO_REDE : raw));
       })
       .finally(() => setMode('idle'));
   };
@@ -225,7 +225,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '14px 20px',
     border: '2px solid #e53935',
     borderRadius: 'var(--border-radius)',
-    background: '#fff5f5',
+    background: 'var(--color-error-light)',
   },
   dot: {
     width: '12px',

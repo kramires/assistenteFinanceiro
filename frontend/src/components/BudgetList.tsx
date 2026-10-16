@@ -145,7 +145,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   progressBarContainer: {
     width: '100%',
     height: '8px',
-    background: '#eee',
+    background: 'var(--color-border)',
     borderRadius: '4px',
     overflow: 'hidden',
   },

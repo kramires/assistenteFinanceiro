@@ -69,7 +69,7 @@ const CardResumoMes: React.FC<Props> = ({ ano, mes }) => {
   const Metric: React.FC<{ title: string; value: string; color?: string; size?: 'normal' | 'large' }> = ({ title, value, color, size = 'normal' }) => (
       <div style={styles.metricCard}>
         <div style={styles.metricTitle}>{title}</div>
-        <div style={{...styles.metricValue, color: color || 'var(--color-text-dark)', fontSize: size === 'large' ? '1.8rem' : '1.4rem' }}>
+        <div style={{...styles.metricValue, color: color || 'var(--color-text-dark)', fontSize: size === 'large' ? 'clamp(1.05rem, 2.2vw, 1.7rem)' : 'clamp(1rem, 1.6vw, 1.3rem)' }}>
           {value}
         </div>
       </div>
@@ -93,7 +93,7 @@ const CardResumoMes: React.FC<Props> = ({ ano, mes }) => {
             </div>
         </div>
 
-        <Metric title="Saldo Acumulado Ano" value={resumo.saldo_acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color={resumo.saldo_acumulado >= 0 ? '#0063B1' : 'var(--color-error)'} />
+        <Metric title="Saldo Acumulado Ano" value={resumo.saldo_acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color={resumo.saldo_acumulado >= 0 ? 'var(--color-primary)' : 'var(--color-error)'} />
         <Metric title="Média de Gastos Mensal" value={resumo.media_mensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
         
         <div style={styles.metricCard}>
@@ -135,7 +135,7 @@ const styles: { [key: string]: React.CSSProperties } = {
       justifyContent: 'center',
       gap: '16px',
       padding: '48px 24px',
-      background: '#F9FAFB',
+      background: 'var(--color-surface-muted)',
       borderRadius: 'var(--border-radius)',
       border: '1px solid var(--color-border)',
       minHeight: '120px',
@@ -155,14 +155,13 @@ const styles: { [key: string]: React.CSSProperties } = {
       fontWeight: 500,
     },
     container: {
-        background: '#F9FAFB',
+        background: 'var(--color-surface-muted)',
         borderRadius: 'var(--border-radius)',
-        padding: '24px',
-        marginBottom: '32px',
+        padding: 'clamp(14px, 3vw, 24px)',
         border: '1px solid var(--color-border)'
     },
     header: {
-        marginBottom: '24px'
+        marginBottom: '16px'
     },
     periodTitle: {
         fontWeight: 'bold',
@@ -174,14 +173,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     metricsGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '24px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: '12px',
     },
     metricCard: {
         background: 'var(--color-surface)',
-        padding: '16px',
+        padding: '14px',
+        minWidth: 0,
         borderRadius: 'var(--border-radius)',
-        border: '1px solid #E5E7EB'
+        border: '1px solid var(--color-border)'
     },
     metricTitle: {
         fontWeight: 500,
@@ -191,10 +191,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     metricValue: {
         fontWeight: 'bold',
+        whiteSpace: 'nowrap',
     },
     comparisonValue: {
-        fontSize: '1.4rem',
+        fontSize: 'clamp(1rem, 1.6vw, 1.3rem)',
         fontWeight: 'bold',
+        whiteSpace: 'nowrap',
         display: 'flex',
         alignItems: 'center',
         gap: '8px'

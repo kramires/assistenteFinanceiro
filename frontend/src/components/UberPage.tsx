@@ -503,8 +503,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: '0 2px',
   },
   faturaTag: {
-    background: '#E3F2FD',
-    color: '#1565C0',
+    background: 'var(--color-primary-light)',
+    color: 'var(--color-primary)',
     borderRadius: 4,
     padding: '2px 8px',
     fontSize: '0.75rem',
@@ -525,7 +525,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   modalContent: {
     width: '100%',
     maxWidth: '700px',
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: 'var(--border-radius)',
     boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
   },

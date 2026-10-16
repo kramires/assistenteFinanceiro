@@ -1,21 +1,82 @@
-/* Definindo nosso Design System com Variáveis CSS */
+/* ─── Design tokens ────────────────────────────────────────────────────────────
+   Todas as cores da interface passam por estas variáveis; o tema escuro só
+   redefine os valores. Tema: data-theme="light|dark" no <html>, ou o do sistema. */
 :root {
-  --color-primary: #0088FE;
-  --color-primary-light: #E6F7FF;
-  --color-success: #2e7d32;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-success: #15803d;
+  --color-success-light: #f0fdf4;
   --color-error: #c62828;
-  --color-text-dark: #2c3e50;
-  --color-text-light: #888;
-  --color-background: #f7f9fb;
+  --color-error-light: #fef2f2;
+  --color-warning: #b45309;
+  --color-warning-light: #fffbeb;
+  --color-warning-border: #fcd34d;
+  --color-text-dark: #1e293b;
+  --color-text-light: #64748b;
+  --color-background: #f1f5f9;
   --color-surface: #ffffff;
-  --color-border: #e1e4e8;
-  
-  --font-family: 'Inter', Arial, sans-serif;
-  --border-radius: 8px;
-  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --color-surface-muted: #f8fafc;
+  --color-hover: #f1f5f9;
+  --color-border: #e2e8f0;
+  --color-on-primary: #ffffff;
+
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --border-radius: 10px;
+  --box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  color-scheme: light;
 }
 
-/* Reset Básico e Estilos Globais */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-primary: #60a5fa;
+    --color-primary-hover: #93c5fd;
+    --color-primary-light: rgba(96, 165, 250, 0.14);
+    --color-success: #4ade80;
+    --color-success-light: rgba(74, 222, 128, 0.12);
+    --color-error: #f87171;
+    --color-error-light: rgba(248, 113, 113, 0.12);
+    --color-warning: #fbbf24;
+    --color-warning-light: rgba(251, 191, 36, 0.10);
+    --color-warning-border: rgba(251, 191, 36, 0.35);
+    --color-text-dark: #e2e8f0;
+    --color-text-light: #94a3b8;
+    --color-background: #0b1120;
+    --color-surface: #131c2e;
+    --color-surface-muted: #182235;
+    --color-hover: #1c2840;
+    --color-border: #263248;
+    --color-on-primary: #0b1120;
+    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-primary: #60a5fa;
+  --color-primary-hover: #93c5fd;
+  --color-primary-light: rgba(96, 165, 250, 0.14);
+  --color-success: #4ade80;
+  --color-success-light: rgba(74, 222, 128, 0.12);
+  --color-error: #f87171;
+  --color-error-light: rgba(248, 113, 113, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-light: rgba(251, 191, 36, 0.10);
+  --color-warning-border: rgba(251, 191, 36, 0.35);
+  --color-text-dark: #e2e8f0;
+  --color-text-light: #94a3b8;
+  --color-background: #0b1120;
+  --color-surface: #131c2e;
+  --color-surface-muted: #182235;
+  --color-hover: #1c2840;
+  --color-border: #263248;
+  --color-on-primary: #0b1120;
+  --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
 body {
   background-color: var(--color-background);
   font-family: var(--font-family);
@@ -28,23 +89,29 @@ h1, h2, h3 {
   margin-top: 0;
 }
 
-h1 {
-  font-size: 2rem;
-}
+h1 { font-size: 1.6rem; letter-spacing: -0.02em; }
 
 h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem; /* Mais espaço após títulos */
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
 }
 
 h3 {
-    font-size: 1.2rem;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+  font-size: 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-/* Estilos de Tabela Aprimorados */
+/* Campos herdam o tema (o padrão do navegador é sempre claro) */
+input, select, textarea {
+  background-color: var(--color-surface);
+  color: var(--color-text-dark);
+  border-color: var(--color-border);
+  font-family: inherit;
+}
+
+/* ─── Tabelas ──────────────────────────────────────────────────────────────── */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -52,46 +119,218 @@ table {
 }
 
 th, td {
-  padding: 12px 16px; /* Mais padding */
+  padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid var(--color-border); /* Apenas borda inferior para um look mais limpo */
+  border-bottom: 1px solid var(--color-border);
 }
 
 th {
-  background-color: #f9fafb;
+  background-color: var(--color-surface-muted);
   font-weight: 600;
   color: var(--color-text-light);
   text-transform: uppercase;
   font-size: 0.8rem;
 }
 
-tr:hover {
-  background-color: #f5f5f5;
-}
+tr:hover { background-color: var(--color-hover); }
 
-/* Botões */
+/* ─── Botões ───────────────────────────────────────────────────────────────── */
 .btn {
-    padding: 8px 24px;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--color-border);
-    background-color: var(--color-surface);
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s ease-in-out;
+  padding: 8px 24px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
 }
 
 .btn-primary {
-    background-color: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
 }
 
 .btn:hover, .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Spinner de carregamento */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ─── Layout da aplicação ──────────────────────────────────────────────────── */
+.app {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 24px 32px;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.app-header h1 { margin: 0; }
+
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.toolbar-btn:hover { background: var(--color-hover); color: var(--color-text-dark); }
+
+.app-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.app-tabs::-webkit-scrollbar { display: none; }
+
+.app-tab {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-tab:hover { background: var(--color-hover); color: var(--color-text-dark); }
+
+.app-tab[aria-selected="true"] {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.app-months {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.app-months::-webkit-scrollbar { display: none; }
+
+.app-month {
+  flex: 1 0 auto;
+  min-width: 48px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-weight: 500;
+  color: var(--color-text-dark);
+  cursor: pointer;
+}
+
+.app-month:hover { background: var(--color-hover); }
+
+.app-month[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.visualizacao-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.visualizacao-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.visualizacao-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: 24px;
+  min-width: 0;
+}
+
+.aviso {
+  border-radius: var(--border-radius);
+  padding: 14px 18px;
+  font-size: 0.9rem;
+  color: var(--color-text-dark);
+}
+
+.aviso-alerta { background: var(--color-warning-light); border: 1px solid var(--color-warning-border); }
+.aviso-erro   { background: var(--color-error-light);   border: 1px solid var(--color-error); }
+
+.aviso h3 { border: none; padding: 0; margin: 0 0 10px 0; font-size: 1rem; }
+.aviso ul { margin: 0; padding-left: 20px; }
+.aviso li { margin-bottom: 6px; }
+
+/* ─── Telas menores ────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .visualizacao-grid { grid-template-columns: minmax(0, 1fr); }
+  .visualizacao-sidebar { position: static; }
+}
+
+@media (max-width: 640px) {
+  .app {
+    margin: 0;
+    padding: 16px;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100vh;
+  }
+
+  .app-header h1 { font-size: 1.25rem; }
+  .app-toolbar label { display: none; }
+
+  /* Tabelas largas rolam dentro do card em vez de estourar a página */
+  table { display: block; overflow-x: auto; white-space: nowrap; }
+  th, td { padding: 10px 12px; }
+}
+
+/* ─── Gráficos (Recharts) seguem o tema ────────────────────────────────────── */
+.recharts-default-tooltip {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+  border-radius: 8px;
+  color: var(--color-text-dark);
+}
+
+.recharts-cartesian-axis-tick text { fill: var(--color-text-light); }
+.recharts-cartesian-grid line { stroke: var(--color-border); }
+.recharts-legend-item-text { color: var(--color-text-dark) !important; }

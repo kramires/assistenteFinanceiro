@@ -73,7 +73,7 @@ const CategoryForm: React.FC<Props> = ({
           </select>
         </div>
         <div style={styles.buttonGroup}>
-          <button type="button" className="btn" onClick={onCancel} style={{ background: '#eee' }}>
+          <button type="button" className="btn" onClick={onCancel} style={{ background: 'var(--color-border)' }}>
             Cancelar
           </button>
           <button type="submit" className="btn btn-primary">
@@ -88,7 +88,7 @@ const CategoryForm: React.FC<Props> = ({
 const styles: { [key: string]: React.CSSProperties } = {
   formContainer: {
     padding: '24px',
-    background: '#f9fafb',
+    background: 'var(--color-surface-muted)',
     border: '1px solid var(--color-border)',
     borderRadius: 'var(--border-radius)',
     marginBottom: '24px'

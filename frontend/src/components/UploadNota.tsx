@@ -64,7 +64,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '16px',
     padding: '20px',
     borderRadius: 'var(--border-radius)',
-    background: '#f9fafb',
+    background: 'var(--color-surface-muted)',
     border: '1px solid var(--color-border)',
     cursor: 'pointer',
     transition: 'all 0.2s ease',

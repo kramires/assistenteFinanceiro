@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../config';
-import { apiFetch } from '../api';
+import { apiFetch, mensagemErro, ERRO_REDE } from '../api';
 import CartaoCard from './CartaoCard';
 import LancamentosFatura from './LancamentosFatura';
 import ParcelasFuturas from './ParcelasFuturas';
@@ -107,20 +107,22 @@ export default function CartoesPage() {
     if (impVenc) formData.append('data_vencimento', impVenc);
 
     setImporting(true);
-    setMsg('Importando e categorizando...');
+    setMsg(file.name.toLowerCase().endsWith('.pdf')
+      ? 'Lendo a fatura com IA e categorizando... pode levar 1–2 minutos.'
+      : 'Importando e categorizando...');
     try {
       const res = await apiFetch(`${API_BASE}/faturas/importar`, { method: 'POST', body: formData });
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setMsg(`✓ Importado: ${data.total_lancamentos} lançamentos — R$ ${data.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
         setShowImport(false);
         await loadAll();
         setSelectedFaturaId(data.fatura_id);
       } else {
-        setMsg(`Erro: ${data.detail || 'falha ao importar'}`);
+        setMsg(`Erro: ${await mensagemErro(res)}`);
       }
     } catch {
-      setMsg('Erro de conexão.');
+      setMsg(`Erro: ${ERRO_REDE}`);
     } finally {
       setImporting(false);
     }
@@ -186,7 +188,13 @@ export default function CartoesPage() {
       </div>
 
       {msg && (
-        <div style={styles.msgBanner} onClick={() => setMsg('')}>{msg}</div>
+        <div
+          style={msg.startsWith('Erro') ? { ...styles.msgBanner, ...styles.msgBannerErro } : styles.msgBanner}
+          onClick={() => setMsg('')}
+          title="Clique para fechar"
+        >
+          {msg}
+        </div>
       )}
 
       {/* ── ABA FATURAS ── */}
@@ -407,11 +415,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   msgBanner: {
     padding: '10px 16px',
-    background: '#E8F5E9',
-    border: '1px solid #A5D6A7',
+    background: 'var(--color-success-light)',
+    border: '1px solid var(--color-success)',
     borderRadius: 8,
     fontSize: '0.9rem',
     cursor: 'pointer',
+  },
+  msgBannerErro: {
+    background: 'var(--color-error-light)',
+    border: '1px solid var(--color-error)',
   },
   cartoesRow: { display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8, alignItems: 'center' },
   addCardBtn: {
@@ -570,7 +582,7 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 100,
   },
   modal: {
-    background: '#fff',
+    background: 'var(--color-surface)',
     borderRadius: 16,
     padding: '24px 28px',
     minWidth: 340,

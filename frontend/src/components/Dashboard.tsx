@@ -250,7 +250,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   tooltip: {
     background: 'rgba(255, 255, 255, 0.95)',
-    border: '1px solid #ccc',
+    border: '1px solid var(--color-border)',
     padding: '10px',
     borderRadius: 'var(--border-radius)',
     boxShadow: 'var(--box-shadow)'

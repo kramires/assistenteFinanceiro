@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
 import CardResumoMes from './components/CardResumoMes';
@@ -35,6 +35,27 @@ for (let y = 2023; y <= currentYear + 1; y++) {
 const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 type Aba = 'visualizacao' | 'lancamento' | 'uber' | 'categorias' | 'cartoes';
+type Tema = 'light' | 'dark';
+
+const TEMA_KEY = 'af_tema';
+
+function temaInicial(): Tema {
+  try {
+    const salvo = localStorage.getItem(TEMA_KEY);
+    if (salvo === 'light' || salvo === 'dark') return salvo;
+  } catch {
+    // localStorage indisponível (aba anônima): segue o sistema
+  }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+const ABAS: { id: Aba; label: string }[] = [
+  { id: 'visualizacao', label: 'Visão geral' },
+  { id: 'lancamento', label: 'Movimentações' },
+  { id: 'uber', label: 'Transporte' },
+  { id: 'categorias', label: 'Categorias' },
+  { id: 'cartoes', label: 'Cartões' },
+];
 
 interface GastoCategoria { categoria: string; total: number; }
 interface EvolucaoMensal { mes: string; total: number; }
@@ -56,8 +77,24 @@ function App() {
   const [alertas, setAlertas] = useState<string[]>([]);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [perfilAberto, setPerfilAberto] = useState(false);
+  const [tema, setTema] = useState<Tema>(temaInicial);
+  const mesesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = tema;
+    try { localStorage.setItem(TEMA_KEY, tema); } catch { /* ignora */ }
+  }, [tema]);
 
   const refreshAll = () => setRefresh(r => !r);
+
+  // No celular a faixa de meses rola na horizontal: centraliza o mês ativo
+  useEffect(() => {
+    const faixa = mesesRef.current;
+    const ativo = faixa?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (faixa && ativo) {
+      faixa.scrollLeft = ativo.offsetLeft - faixa.offsetLeft - (faixa.clientWidth - ativo.offsetWidth) / 2;
+    }
+  }, [mesSelecionado, abaAtiva, isLoggedIn]);
 
   useEffect(() => {
     const handleUnauthorized = () => { setIsLoggedIn(false); };
@@ -94,68 +131,81 @@ function App() {
     }
   }, [anoSelecionado, mesSelecionado, abaAtiva, refresh]);
 
-  const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
-    <button onClick={onClick} style={isActive ? styles.tabButtonActive : styles.tabButton}>{label}</button>
-  );
-
-  const MonthButton: React.FC<{ label: string; month: number; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
-    <button onClick={onClick} style={isActive ? styles.monthButtonActive : styles.monthButton}>{label}</button>
-  );
-
   if (!isLoggedIn) {
     return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
   }
 
   return (
-    <div style={styles.appContainer}>
+    <div className="app">
       {perfilAberto && (
         <PerfilModal username={getUsernameFromToken()} onClose={() => setPerfilAberto(false)} />
       )}
       {backendUnavailable && (
-        <div style={styles.backendBanner}>
-          <strong>Backend não disponível.</strong> Inicie o servidor com:{' '}
-          <code style={styles.backendCode}>uvicorn backend.app.main:app --reload --port 8002</code>
+        <div className="aviso aviso-erro" style={{ marginBottom: 16 }}>
+          <strong>Servidor indisponível.</strong> Verifique se o sistema está rodando
+          (<code>start.command</code>) e recarregue a página.
         </div>
       )}
-      <header style={styles.header}>
-        <h1 style={{ marginBottom: 0 }}>Assistente Financeiro</h1>
-        <div style={styles.yearSelectorContainer}>
-          <label htmlFor="year-select">Ano:</label>
+      <header className="app-header">
+        <h1>Assistente Financeiro</h1>
+        <div className="app-toolbar">
+          <label htmlFor="year-select">Ano</label>
           <select id="year-select" value={anoSelecionado} onChange={e => setAnoSelecionado(Number(e.target.value))} style={styles.yearSelect}>
             {anosDisponiveis.map(ano => <option key={ano} value={ano}>{ano}</option>)}
           </select>
-          <button onClick={() => setPerfilAberto(true)} style={styles.logoutBtn}>Perfil</button>
-          <button onClick={handleLogout} style={styles.logoutBtn}>Sair</button>
+          <button
+            className="toolbar-btn"
+            onClick={() => setTema(t => (t === 'dark' ? 'light' : 'dark'))}
+            title={tema === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+            aria-label={tema === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'}
+          >
+            {tema === 'dark' ? '☀' : '☾'}
+          </button>
+          <button className="toolbar-btn" onClick={() => setPerfilAberto(true)}>Perfil</button>
+          <button className="toolbar-btn" onClick={handleLogout}>Sair</button>
         </div>
       </header>
 
-      <div style={styles.tabsContainer}>
-        <TabButton label="Visualização" isActive={abaAtiva === 'visualizacao'} onClick={() => setAbaAtiva('visualizacao')} />
-        <TabButton label="Movimentações" isActive={abaAtiva === 'lancamento'} onClick={() => setAbaAtiva('lancamento')} />
-        <TabButton label="Transporte por Aplicativo" isActive={abaAtiva === 'uber'} onClick={() => setAbaAtiva('uber')} />
-        <TabButton label="Categorias" isActive={abaAtiva === 'categorias'} onClick={() => setAbaAtiva('categorias')} />
-        <TabButton label="Cartões" isActive={abaAtiva === 'cartoes'} onClick={() => setAbaAtiva('cartoes')} />
-      </div>
+      <nav className="app-tabs" role="tablist">
+        {ABAS.map(aba => (
+          <button
+            key={aba.id}
+            role="tab"
+            className="app-tab"
+            aria-selected={abaAtiva === aba.id}
+            onClick={() => setAbaAtiva(aba.id)}
+          >
+            {aba.label}
+          </button>
+        ))}
+      </nav>
 
       {(abaAtiva === 'visualizacao' || abaAtiva === 'uber') && (
-        <div style={styles.monthsContainer}>
+        <div className="app-months" ref={mesesRef}>
           {nomesMeses.map((mesNome, idx) => (
-            <MonthButton key={idx + 1} label={mesNome} month={idx + 1} isActive={mesSelecionado === (idx + 1)} onClick={() => setMesSelecionado(idx + 1)} />
+            <button
+              key={idx + 1}
+              className="app-month"
+              aria-pressed={mesSelecionado === idx + 1}
+              onClick={() => setMesSelecionado(idx + 1)}
+            >
+              {mesNome}
+            </button>
           ))}
         </div>
       )}
 
       <main>
         {abaAtiva === 'visualizacao' && (
-          <div style={styles.visualizacaoContainer}>
-            <div style={styles.mainColumn}>
+          <div className="visualizacao-grid">
+            <div className="visualizacao-main">
               <CardResumoMes ano={anoSelecionado} mes={mesSelecionado} />
               {alertas.length > 0 && (
-                <div style={styles.alertasCard}>
-                  <h3 style={styles.alertasTitle}>Alertas</h3>
-                  <ul style={styles.alertasList}>
+                <div className="aviso aviso-alerta">
+                  <h3>Alertas</h3>
+                  <ul>
                     {alertas.map((msg, i) => (
-                      <li key={i} style={styles.alertasItem}>{msg}</li>
+                      <li key={i}>{msg}</li>
                     ))}
                   </ul>
                 </div>
@@ -163,7 +213,7 @@ function App() {
               <Dashboard gastosCategoria={gastosCategoria} evolucaoMensal={evolucaoMensal} resumoAnual={resumoAnual} ano={anoSelecionado} />
               <TransactionList refreshFlag={refresh} ano={anoSelecionado} mes={mesSelecionado} />
             </div>
-            <aside style={styles.sidebarColumn}>
+            <aside className="visualizacao-sidebar">
               <BudgetForm ano={anoSelecionado} mes={mesSelecionado} onOrcamentoSalvo={refreshAll} />
               <BudgetList ano={anoSelecionado} mes={mesSelecionado} gastosPorCategoria={gastosCategoria} categorias={categorias} onChange={refreshAll} />
             </aside>
@@ -188,145 +238,11 @@ function App() {
 
 // --- Estilos CSS-in-JS (Completo) ---
 const styles: { [key: string]: React.CSSProperties } = {
-  appContainer: {
-    maxWidth: 1200,
-    margin: '32px auto',
-    padding: '24px 32px',
-    backgroundColor: 'var(--color-surface)',
-    borderRadius: 'var(--border-radius)',
-    boxShadow: 'var(--box-shadow)'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '24px',
-  },
-  yearSelectorContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '1rem',
-  },
   yearSelect: {
-    fontSize: '1rem',
-    padding: '4px 8px',
-    borderRadius: '6px',
+    fontSize: '0.95rem',
+    padding: '5px 8px',
+    borderRadius: '8px',
     border: '1px solid var(--color-border)',
-  },
-  logoutBtn: {
-    padding: '4px 12px',
-    fontSize: '0.9rem',
-    borderRadius: '6px',
-    border: '1px solid var(--color-border)',
-    background: 'transparent',
-    cursor: 'pointer',
-    color: 'var(--color-text-light)',
-  },
-  tabsContainer: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '24px',
-    borderBottom: '1px solid var(--color-border)',
-    paddingBottom: '12px',
-  },
-  tabButton: {
-    padding: '10px 20px',
-    borderRadius: 'var(--border-radius)',
-    border: 'none',
-    background: 'transparent',
-    fontWeight: 500,
-    cursor: 'pointer',
-    fontSize: '1rem',
-    color: 'var(--color-text-light)',
-  },
-  tabButtonActive: {
-    padding: '10px 20px',
-    borderRadius: 'var(--border-radius)',
-    border: 'none',
-    background: 'var(--color-primary-light)',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    fontSize: '1rem',
-    color: 'var(--color-primary)',
-  },
-  monthsContainer: {
-    display: 'flex',
-    gap: '10px',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
-  },
-  monthButton: {
-    padding: '8px 16px',
-    borderRadius: '6px',
-    border: '1px solid var(--color-border)',
-    background: 'var(--color-surface)',
-    fontWeight: 500,
-    color: 'var(--color-text-dark)',
-    cursor: 'pointer',
-  },
-  monthButtonActive: {
-    padding: '8px 16px',
-    borderRadius: '6px',
-    border: '2px solid var(--color-primary)',
-    background: 'var(--color-primary-light)',
-    fontWeight: 'bold',
-    color: 'var(--color-primary)',
-    cursor: 'pointer',
-  },
-  visualizacaoContainer: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr',
-    gap: '24px',
-    alignItems: 'start'
-  },
-  mainColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-  sidebarColumn: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px',
-    position: 'sticky',
-    top: '24px'
-  },
-  alertasCard: {
-    background: '#FFF8E1',
-    border: '1px solid #FFC107',
-    borderRadius: 'var(--border-radius)',
-    padding: '16px 20px',
-  },
-  alertasTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '1rem',
-    color: 'var(--color-text-dark)',
-  },
-  alertasList: {
-    margin: 0,
-    paddingLeft: '20px',
-  },
-  alertasItem: {
-    marginBottom: '6px',
-    fontSize: '0.9rem',
-    color: 'var(--color-text-dark)',
-  },
-  backendBanner: {
-    background: '#FFEBEE',
-    border: '1px solid #EF5350',
-    borderRadius: 'var(--border-radius)',
-    padding: '12px 16px',
-    marginBottom: '16px',
-    fontSize: '0.9rem',
-    color: 'var(--color-text-dark)',
-  },
-  backendCode: {
-    background: 'rgba(0,0,0,0.06)',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontFamily: 'monospace',
-    fontSize: '0.85em',
   },
 };
 

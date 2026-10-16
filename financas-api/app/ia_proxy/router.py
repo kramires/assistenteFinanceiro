@@ -2,6 +2,8 @@
 Proxy para ia-api: extrai dados via IA e persiste no DB.
 Mantém o frontend usando um único host (financas-api /api/*) com JWT.
 """
+import logging
+
 import httpx
 from decimal import Decimal, InvalidOperation
 from datetime import date
@@ -18,6 +20,23 @@ from app.database import get_db
 from app.domain.transporte import TRANSPORTE_APP_EXCLUIR_DASHBOARD
 from app.transacoes.schemas import TransacaoCreate
 from app.transacoes.service import TransacaoService
+
+logger = logging.getLogger(__name__)
+
+
+def _erro_ia(exc: httpx.HTTPError) -> HTTPException:
+    """Traduz falha na chamada à ia-api numa mensagem legível (detalhe técnico só no log)."""
+    logger.warning("Falha na ia-api: %r", exc)
+    if isinstance(exc, httpx.TimeoutException):
+        motivo = "a IA demorou demais para responder. Tente novamente."
+    elif isinstance(exc, httpx.HTTPStatusError):
+        try:
+            motivo = exc.response.json().get("detail") or f"HTTP {exc.response.status_code}"
+        except ValueError:
+            motivo = f"HTTP {exc.response.status_code}"
+    else:
+        motivo = "não foi possível conectar ao serviço de IA."
+    return HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"IA indisponível: {motivo}")
 
 router = APIRouter(tags=["ia-proxy"])
 
@@ -85,7 +104,7 @@ async def lancar_texto(
             resp.raise_for_status()
             dados = resp.json()
         except httpx.HTTPError as exc:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"IA indisponível: {exc}")
+            raise _erro_ia(exc) from exc
 
     if not dados:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="IA não conseguiu extrair informações do texto.")
@@ -110,7 +129,7 @@ async def lancar_audio(
             resp.raise_for_status()
             dados = resp.json()
         except httpx.HTTPError as exc:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"IA indisponível: {exc}")
+            raise _erro_ia(exc) from exc
 
     if not dados:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="IA não conseguiu extrair dados do áudio.")
@@ -135,7 +154,7 @@ async def nota_upload(
             resp.raise_for_status()
             dados = resp.json()
         except httpx.HTTPError as exc:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"IA indisponível: {exc}")
+            raise _erro_ia(exc) from exc
 
     if not dados:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="IA não conseguiu extrair dados da nota.")

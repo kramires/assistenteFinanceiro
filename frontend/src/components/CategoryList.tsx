@@ -86,7 +86,7 @@ const CategoryList: React.FC = () => {
         <tbody>
           {categorias.length === 0 ? (
             <tr>
-              <td colSpan={3} style={{ textAlign: 'center', color: '#888', padding: 24 }}>
+              <td colSpan={3} style={{ textAlign: 'center', color: 'var(--color-text-light)', padding: 24 }}>
                 Nenhuma categoria cadastrada.
               </td>
             </tr>
