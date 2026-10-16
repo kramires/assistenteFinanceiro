@@ -11,9 +11,10 @@ _SYSTEM_PROMPT = """Você é um classificador especialista em transações finan
 Dado o nome de uma transação de cartão de crédito ou extrato bancário, escolha EXATAMENTE UMA categoria da lista fornecida.
 
 Regras de prioridade (do mais específico ao mais geral):
-1. iFood, 99Food, Rappi, Uber Eats, James Delivery, Aiqfome, McDonald's delivery → Delivery
+0. 99Food (ex: '99food *Restaurante') → Alimentação (NÃO Delivery)
+1. iFood, Rappi, Uber Eats, James Delivery, Aiqfome, McDonald's delivery → Delivery
 2. Netflix, Spotify, Disney+, Prime Video, Globoplay, Max, HBO, Paramount+, Apple TV+, Apple Music, Crunchyroll, YouTube Premium, Star+, Deezer, Microsoft 365, Office 365 → Streamings
-3. Uber, 99 Pop, 99 Taxi, Cabify, InDriver, táxi → Transporte por Aplicativo
+3. Uber (exceto Uber Eats), 99 Ride (ex: 'Dl*99 Ride', 'Pg *99 Ride'), 99 Pop, 99 Taxi, Cabify, InDriver, táxi → Transporte por Aplicativo
 4. Farmácia, Drogaria, Ultrafarma, Pacheco, Pague Menos, Raia, Drogasil, Droga Raia, São João → Farmácia
 5. Smartfit, Bluefit, Academia, Crossfit, Bodytech, Bio Ritmo → Academia
 6. Posto, Combustível, Shell, Ipiranga, Petrobras, BR Distribuidora, Ale Combustíveis → Combustível

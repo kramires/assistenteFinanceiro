@@ -1,10 +1,12 @@
 import asyncio
+import re
 from datetime import date
 from decimal import Decimal
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cartoes.repository import CartaoRepository
 from app.categorias.repository import CategoriaRepository
 from app.config import settings
 from app.faturas.parsers import bb_pdf, nubank_csv
@@ -79,17 +81,33 @@ async def importar_pdf(
     substituir: bool = False,
     ignorar_validacao: bool = False,
 ) -> dict:
+    # PDF não pode mesclar com fatura existente: a IA descreve os mesmos lançamentos de
+    # forma diferente a cada leitura, e a deduplicação por descrição gravaria duplicatas.
+    if not substituir:
+        existente = await FaturaRepository(db).buscar_por_cartao_mes(cartao_id, mes_referencia)
+        if existente:
+            raise ValueError(
+                f"A fatura de {mes_referencia} deste cartão já foi importada "
+                f"(R$ {existente.valor_total:.2f}). Nada foi alterado. "
+                f"Para reimportar, exclua a fatura antes ou use a opção substituir."
+            )
+
     result = await bb_pdf.parse(content, mes_referencia)
     lancamentos_raw = result.get("transacoes", [])
 
     # ── Validação: soma extraída pela IA deve bater com o total impresso no PDF ──
+    # Esperado = Total − Saldo anterior + Pagamentos/Créditos; sem esses dados, usa o Total.
     total_pdf = result.get("total_pdf")
-    if total_pdf is not None and not ignorar_validacao:
+    esperado = result.get("total_debitos_pdf")
+    if esperado is None:
+        esperado = total_pdf
+    if esperado is not None and not ignorar_validacao:
         soma = round(sum(float(l.get("valor", 0)) for l in lancamentos_raw), 2)
-        if abs(soma - total_pdf) > 0.05:
+        if abs(soma - esperado) > 0.05:
             raise ValueError(
                 f"Extração divergente: os {len(lancamentos_raw)} lançamentos extraídos somam "
-                f"R$ {soma:.2f}, mas o total impresso na fatura é R$ {total_pdf:.2f}. "
+                f"R$ {soma:.2f}, mas os débitos da fatura somam R$ {esperado:.2f} "
+                f"(total impresso R$ {total_pdf:.2f}, descontados saldo anterior e pagamentos). "
                 f"Nada foi importado. Tente novamente ou envie ignorar_validacao=true para forçar."
             )
 
@@ -263,3 +281,55 @@ async def pagar_fatura(
 
     await repo.marcar_paga(fatura_id, tx.id)
     return {"transacao_id": tx.id, "valor": float(fatura.valor_total)}
+
+
+# ── Importação automática (Discord): detecta cartão e mês pelo próprio arquivo ──
+
+_NUBANK_CSV_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+
+
+def _mes_anterior(d: date) -> str:
+    """Convenção do sistema: mês de referência = mês anterior ao vencimento."""
+    ano, mes = (d.year, d.month - 1) if d.month > 1 else (d.year - 1, 12)
+    return f"{ano:04d}-{mes:02d}"
+
+
+async def importar_auto(
+    content: bytes, filename: str, db: AsyncSession, substituir: bool = False
+) -> dict:
+    nome = filename.lower()
+    cartoes = await CartaoRepository(db).listar()
+
+    if nome.endswith(".pdf"):
+        text = bb_pdf.extract_text(content)
+        final = bb_pdf.detectar_final_cartao(text)
+        vencimento = bb_pdf.detectar_vencimento(text)
+        cartao = next((c for c in cartoes if final and c.final_numero == final), None)
+        if not cartao:
+            raise ValueError(
+                f"Nenhum cartão cadastrado com final {final}." if final
+                else "Não encontrei o final do cartão no PDF."
+            )
+    elif nome.endswith(".csv"):
+        # Export do Nubank: "Nubank_2026-07-05.csv" (data = vencimento)
+        m = _NUBANK_CSV_RE.search(nome)
+        vencimento = date(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+        cartao = next((c for c in cartoes if "nubank" in c.nome.lower()), None)
+        if not cartao:
+            raise ValueError("Nenhum cartão Nubank cadastrado.")
+    else:
+        raise ValueError("Envie o PDF da fatura do BB ou o CSV do Nubank.")
+
+    if not vencimento:
+        raise ValueError("Não encontrei a data de vencimento no arquivo.")
+
+    mes_referencia = _mes_anterior(vencimento)
+    if nome.endswith(".pdf"):
+        result = await importar_pdf(
+            content, cartao.id, mes_referencia, vencimento, db, substituir=substituir
+        )
+    else:
+        result = await importar_csv(
+            content, cartao.id, mes_referencia, vencimento, db, substituir=substituir
+        )
+    return {**result, "cartao": cartao.nome, "data_vencimento": vencimento.isoformat()}

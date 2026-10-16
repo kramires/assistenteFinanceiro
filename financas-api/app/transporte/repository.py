@@ -1,26 +1,35 @@
-from sqlalchemy import and_, case, extract, func, or_, select
+from sqlalchemy import and_, case, extract, func, not_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.categorias.models import Categoria
-from app.domain.transporte import TRANSPORTE_APP_CALC
+from app.domain.transporte import (
+    TRANSPORTE_APP_CALC,
+    TRANSPORTE_APP_DESCRICAO,
+    TRANSPORTE_APP_DESCRICAO_EXCLUIR,
+)
 from app.faturas.models import LancamentoFatura
 from app.transacoes.models import Transacao
 
 _CALC_LOWER = [n.lower() for n in TRANSPORTE_APP_CALC]
 
 
+def _descricao_match(coluna):
+    """Descrição com termo de corrida, exceto delivery dos mesmos apps (99food, Uber Eats)."""
+    inclui = or_(*[coluna.ilike(f"%{n}%") for n in TRANSPORTE_APP_DESCRICAO])
+    exclui = or_(*[coluna.ilike(f"%{n}%") for n in TRANSPORTE_APP_DESCRICAO_EXCLUIR])
+    return and_(inclui, not_(exclui))
+
+
 def _fatura_transport_filter():
-    """OR: categoria.nome in transport set OR descricao ilike any transport keyword."""
+    """OR: categoria.nome in transport set OR descricao com termo de corrida."""
     cat_match = func.lower(Categoria.nome).in_(_CALC_LOWER)
-    desc_matches = [LancamentoFatura.descricao.ilike(f"%{n}%") for n in TRANSPORTE_APP_CALC]
-    return or_(cat_match, *desc_matches)
+    return or_(cat_match, _descricao_match(LancamentoFatura.descricao))
 
 
 def _transporte_filter():
     """OR filter: categoria.nome in CALC set OR descricao ilike any CALC name (BR-MIGRAR-023)."""
     cat_match = func.lower(Categoria.nome).in_(_CALC_LOWER)
-    desc_matches = [Transacao.descricao.ilike(f"%{n}%") for n in TRANSPORTE_APP_CALC]
-    return or_(cat_match, *desc_matches)
+    return or_(cat_match, _descricao_match(Transacao.descricao))
 
 
 class TransporteRepository:

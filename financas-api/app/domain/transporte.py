@@ -27,3 +27,15 @@ PRIORIDADE_CATEGORIA_TRANSPORTE: list[str] = [
     "99",
     "taxi",
 ]
+
+# Fallback por descrição (lançamentos sem categoria de transporte). Termos específicos
+# de corrida: "99" sozinho pegava 99food e Pix com CPF/telefone contendo "99".
+TRANSPORTE_APP_DESCRICAO: tuple[str, ...] = (
+    "uber",
+    "99 ride", "99ride", "99app", "99 pop", "99pop", "99 taxi", "99taxi", "99cab",
+    "taxi", "táxi", "cabify", "indriver",
+    "transporte escolar",
+)
+
+# Delivery dos mesmos apps não é transporte (Uber Eats, 99Food)
+TRANSPORTE_APP_DESCRICAO_EXCLUIR: tuple[str, ...] = ("eats", "food")

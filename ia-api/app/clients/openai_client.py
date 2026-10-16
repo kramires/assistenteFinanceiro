@@ -6,9 +6,14 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_openai = AsyncOpenAI(api_key=settings.openai_api_key)
+_openai = AsyncOpenAI(api_key=settings.openai_api_key, timeout=120.0, max_retries=0)
 _deepseek = (
-    AsyncOpenAI(api_key=settings.deepseek_api_key, base_url=settings.deepseek_base_url)
+    AsyncOpenAI(
+        api_key=settings.deepseek_api_key,
+        base_url=settings.deepseek_base_url,
+        timeout=150.0,
+        max_retries=0,
+    )
     if settings.deepseek_api_key
     else None
 )
@@ -21,14 +26,19 @@ def _deepseek_equivalente(openai_model: str) -> str:
     return settings.deepseek_model
 
 
-async def chat_completion(messages: list[dict], model: str | None = None) -> str:
-    """Tenta DeepSeek (principal, mais barato); cai para OpenAI em caso de erro (NR-02)."""
+async def chat_completion(
+    messages: list[dict], model: str | None = None, deepseek_model: str | None = None
+) -> str:
+    """Tenta DeepSeek (principal, mais barato); cai para OpenAI em caso de erro (NR-02).
+
+    `deepseek_model` sobrescreve o mapeamento automático de tier para o DeepSeek.
+    """
     target_model = model or settings.openai_model
 
     if _deepseek is not None:
         try:
             resp = await _deepseek.chat.completions.create(
-                model=_deepseek_equivalente(target_model),
+                model=deepseek_model or _deepseek_equivalente(target_model),
                 messages=messages,
                 response_format={"type": "json_object"},
             )
