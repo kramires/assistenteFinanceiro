@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { API_BASE } from '../config';
-import { apiFetch } from '../api';
+import { apiFetch, mensagemErro, ERRO_REDE } from '../api';
 
 interface Props {
   username: string;
@@ -34,9 +34,8 @@ export default function PerfilModal({ username, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha }),
       });
-      const data = await resp.json();
       if (!resp.ok) {
-        setErro(data.detail || 'Erro ao alterar senha.');
+        setErro(await mensagemErro(resp));
       } else {
         setSucesso('Senha alterada com sucesso!');
         setSenhaAtual('');
@@ -44,7 +43,7 @@ export default function PerfilModal({ username, onClose }: Props) {
         setConfirmar('');
       }
     } catch {
-      setErro('Erro de conexão.');
+      setErro(ERRO_REDE);
     } finally {
       setLoading(false);
     }
@@ -175,7 +174,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   erro: {
     padding: '8px 12px',
-    background: '#FFF0F0',
+    background: 'var(--color-error-light)',
     border: '1px solid #FFBCBC',
     borderRadius: 6,
     fontSize: '0.85rem',
@@ -183,11 +182,11 @@ const s: Record<string, React.CSSProperties> = {
   },
   sucesso: {
     padding: '8px 12px',
-    background: '#F0FFF4',
+    background: 'var(--color-success-light)',
     border: '1px solid #B7EBC6',
     borderRadius: 6,
     fontSize: '0.85rem',
-    color: '#1a7a3e',
+    color: 'var(--color-success)',
   },
   btn: {
     padding: '10px 0',

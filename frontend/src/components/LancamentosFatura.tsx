@@ -282,7 +282,7 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
             ))}
 
             {adding && (
-              <tr style={{ ...styles.tr, background: '#e8f5e9' }}>
+              <tr style={{ ...styles.tr, background: 'var(--color-success-light)' }}>
                 <td style={styles.td}>
                   <input
                     type="date"
@@ -406,8 +406,8 @@ const styles: Record<string, React.CSSProperties> = {
   tr: { borderBottom: '1px solid var(--color-border)' },
   td: { padding: '10px 14px', fontSize: '0.9rem', color: 'var(--color-text-dark)' },
   parcelaBadge: {
-    background: '#E3F2FD',
-    color: '#1565C0',
+    background: 'var(--color-primary-light)',
+    color: 'var(--color-primary)',
     borderRadius: 4,
     padding: '1px 6px',
     fontSize: '0.75rem',

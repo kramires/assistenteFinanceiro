@@ -28,9 +28,9 @@ def _headers() -> dict:
     return {"Authorization": f"Bearer {_jwt}"}
 
 
-async def _post(path: str, **kwargs) -> httpx.Response:
+async def _post(path: str, timeout: float = 60, **kwargs) -> httpx.Response:
     """POST com refresh automático de JWT em caso de 401."""
-    async with httpx.AsyncClient(timeout=60) as http:
+    async with httpx.AsyncClient(timeout=timeout) as http:
         resp = await http.post(f"{API_BASE}{path}", headers=_headers(), **kwargs)
         if resp.status_code == 401:
             await _refresh_token()
@@ -70,6 +70,9 @@ async def on_message(message: discord.Message):
             "> Whisper transcreve e a IA lança automaticamente\n\n"
             "🧾 **Nota** — envie foto de nota fiscal ou cupom\n"
             "> A IA extrai valor e descrição e lança\n\n"
+            "💳 **Fatura** — envie o PDF da fatura do BB ou o CSV do Nubank\n"
+            "> Cartão e mês são detectados pelo arquivo; leva 1–2 min\n"
+            "> Escreva `substituir` junto do arquivo para regravar uma fatura já importada\n\n"
             "_Sem prefixo de comando — tudo que você enviar é processado._"
         )
         return
@@ -81,7 +84,11 @@ async def on_message(message: discord.Message):
 
         is_audio = ct.startswith("audio/") or ext in ("mp3", "ogg", "webm", "wav", "m4a", "aac")
         is_image = ct.startswith("image/") or ext in ("jpg", "jpeg", "png", "webp", "gif", "heic")
+        is_fatura = ext in ("pdf", "csv")
 
+        if is_fatura:
+            await _handle_fatura(message, att)
+            return
         if is_audio:
             await _handle_audio(message, att, ct or "audio/ogg")
             return
@@ -114,6 +121,37 @@ async def _handle_image(message: discord.Message, att: discord.Attachment, ct: s
     resp = await _post("/api/nota/upload", files={"file": (att.filename, img, ct)})
     await aviso.delete()
     await _reply_result(message, resp, "🧾")
+
+
+async def _handle_fatura(message: discord.Message, att: discord.Attachment):
+    substituir = "substituir" in message.content.lower()
+    aviso = await message.reply(
+        "💳 " + ("Substituindo" if substituir else "Lendo") + " fatura... isso leva 1–2 minutos."
+    )
+    conteudo = await att.read()
+    try:
+        # Extração via IA leva até ~2 min em faturas grandes (ver bb_pdf.py)
+        resp = await _post(
+            "/api/faturas/importar-auto", timeout=300,
+            files={"file": (att.filename, conteudo, att.content_type or "application/octet-stream")},
+            data={"substituir": str(substituir).lower()},
+        )
+    except httpx.TimeoutException:
+        await aviso.delete()
+        await message.reply("❌ A leitura da fatura demorou demais. Tente novamente.")
+        return
+    await aviso.delete()
+
+    if resp.status_code == 201:
+        r = resp.json()
+        await message.reply(
+            f"💳 **{r['cartao']}** — referência {r['mes_referencia']} "
+            f"(vence {r['data_vencimento'][8:10]}/{r['data_vencimento'][5:7]})\n"
+            f"🧾 {r['mensagem']}\n"
+            f"💰 Total da fatura: R$ {r['valor_total']:.2f}"
+        )
+    else:
+        await _reply_result(message, resp, "💳")
 
 
 async def _reply_result(message: discord.Message, resp: httpx.Response, icon: str):

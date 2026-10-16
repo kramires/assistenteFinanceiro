@@ -144,27 +144,27 @@ export default function CartoesDashboard({ mes }: Props) {
     <div style={styles.wrapper}>
       {/* KPIs */}
       <div style={styles.kpiRow}>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Total Cartões ({fmtMes(mes)})</div>
-          <div style={styles.kpiValue}>
+          <div className="metric-value" style={styles.kpiValue}>
             R$ {data.total_geral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Categorias no mês</div>
-          <div style={styles.kpiValue}>{data.por_categoria.length}</div>
+          <div className="metric-value" style={styles.kpiValue}>{data.por_categoria.length}</div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Média mensal (6m)</div>
-          <div style={styles.kpiValue}>
+          <div className="metric-value" style={styles.kpiValue}>
             R$ {evolucao.length > 0
               ? (evolucao.reduce((s, e) => s + e.total, 0) / evolucao.length).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
               : '0,00'}
           </div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Faturas abertas</div>
-          <div style={{ ...styles.kpiValue, color: data.faturas_abertas.length > 0 ? '#E53935' : 'inherit' }}>
+          <div className="metric-value" style={{ ...styles.kpiValue, color: data.faturas_abertas.length > 0 ? 'var(--color-error)' : 'inherit' }}>
             {data.faturas_abertas.length}
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function CartoesDashboard({ mes }: Props) {
         </div>
       )}
       {recatMsg && parseInt(pctOutros) <= 10 && (
-        <div style={{ ...styles.outrosAlert, background: '#F0FDF4', borderColor: '#86EFAC' }}>
+        <div style={{ ...styles.outrosAlert, background: 'var(--color-success-light)', borderColor: '#86EFAC' }}>
           <span style={{ color: '#16A34A' }}>{recatMsg}</span>
         </div>
       )}
@@ -508,7 +508,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--border-radius)', padding: '14px 18px',
   },
   kpiLabel: { fontSize: '0.72rem', color: 'var(--color-text-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  kpiValue: { fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-primary)' },
+  kpiValue: { color: 'var(--color-primary)', ['--metric-max' as string]: '1.4rem' },
 
   chartCard: {
     background: 'var(--color-surface)', border: '1px solid var(--color-border)',
@@ -545,8 +545,8 @@ const styles: Record<string, React.CSSProperties> = {
   // Alerta Outros
   outrosAlert: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-    background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 8,
-    padding: '10px 16px', fontSize: '0.85rem', color: '#9A3412', flexWrap: 'wrap',
+    background: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', borderRadius: 8,
+    padding: '10px 16px', fontSize: '0.85rem', color: 'var(--color-warning)', flexWrap: 'wrap',
   },
   btnSmall: {
     background: 'var(--color-primary)', color: '#fff', border: 'none',
@@ -577,7 +577,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'not-allowed', whiteSpace: 'nowrap',
   },
   erroBox: {
-    marginTop: 12, padding: '10px 14px', background: '#FEE2E2',
+    marginTop: 12, padding: '10px 14px', background: 'var(--color-error-light)',
     border: '1px solid #FCA5A5', borderRadius: 6, color: '#DC2626', fontSize: '0.85rem',
   },
   analiseBody: { marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 },
@@ -595,11 +595,11 @@ const styles: Record<string, React.CSSProperties> = {
   listaItem: { fontSize: '0.88rem', lineHeight: 1.5, color: 'var(--color-text-dark)' },
   analiseRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   metaBox: {
-    flex: 1, minWidth: 200, background: '#EFF6FF', border: '1px solid #BFDBFE',
+    flex: 1, minWidth: 200, background: 'var(--color-primary-light)', border: '1px solid var(--color-border)',
     borderRadius: 8, padding: '12px 16px',
   },
-  metaLabel: { fontSize: '0.78rem', fontWeight: 700, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  metaValor: { fontSize: '0.95rem', color: '#1E40AF', fontWeight: 600 },
+  metaLabel: { fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  metaValor: { fontSize: '0.95rem', color: 'var(--color-primary)', fontWeight: 600 },
   distBox: {
     flex: 2, minWidth: 260, background: 'var(--color-background)',
     border: '1px solid var(--color-border)', borderRadius: 8, padding: '12px 16px',
@@ -616,11 +616,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   abertasGrid: { display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 },
   abertaCard: {
-    minWidth: 160, background: '#FFF3E0', border: '1px solid #FF9800',
+    minWidth: 160, background: 'var(--color-warning-light)', border: '1px solid #FF9800',
     borderRadius: 8, padding: '12px 14px',
   },
-  abertaNome: { fontWeight: 700, fontSize: '0.9rem', color: '#E65100', marginBottom: 2 },
-  abertaMes: { fontSize: '0.75rem', color: '#BF360C', marginBottom: 4 },
+  abertaNome: { fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-warning)', marginBottom: 2 },
+  abertaMes: { fontSize: '0.75rem', color: 'var(--color-warning)', marginBottom: 4 },
   abertaVenc: { fontSize: '0.75rem', color: 'var(--color-text-light)', marginBottom: 6 },
   abertaValor: { fontSize: '1.1rem', fontWeight: 700, color: '#E53935' },
 };

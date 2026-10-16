@@ -11,10 +11,12 @@ from app.transacoes.service import TransacaoService
 
 _HEURISTICS: list[tuple[list[str], str]] = [
     # Delivery — antes de Alimentação para não cair em "Alimentação"
-    (["ifood", "i food", "99food", "rappi", "uber eats", "ubereats",
+    # 99Food vai para Alimentação por preferência do usuário (demais apps seguem em Delivery)
+    (["99food"], "Alimentação"),
+    (["ifood", "i food", "rappi", "uber eats", "ubereats",
       "james delivery", "aiqfome", "goomer"], "Delivery"),
     # Transporte por app — antes de "uber" genérico
-    (["uber", "99 pop", "99cab", "99taxi", "cabify", "indriver",
+    (["uber", "99 ride", "99ride", "99app", "99 pop", "99pop", "99cab", "99taxi", "cabify", "indriver",
       "taxi", "táxi"], "Transporte por Aplicativo"),
     (["transporte escolar"], "Transporte Escolar"),
     # Streamings — antes de amazon genérico

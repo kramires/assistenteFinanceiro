@@ -213,7 +213,7 @@ const styles: { [key:string]: React.CSSProperties } = {
     borderRadius: '2px',
   },
   categoryBadge: {
-    background: '#eee',
+    background: 'var(--color-border)',
     padding: '4px 8px',
     borderRadius: '6px',
     fontSize: '0.8rem',
@@ -255,7 +255,7 @@ const styles: { [key:string]: React.CSSProperties } = {
   modalContent: {
     width: '100%',
     maxWidth: '600px',
-    background: 'white',
+    background: 'var(--color-surface)',
     borderRadius: 'var(--border-radius)',
     boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
   }

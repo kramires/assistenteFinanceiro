@@ -126,7 +126,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: '1px solid var(--color-border)',
     fontSize: '1rem',
     boxSizing: 'border-box',
-    background: 'white'
+    background: 'var(--color-surface)'
   },
 };
 

@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_model: str = "gpt-4.1"
     openai_model_mini: str = "gpt-4.1-mini"
+    # whisper-1 passou a ser rejeitado pela OpenAI; modelos gpt-*-transcribe funcionam
+    openai_transcribe_model: str = "gpt-4o-mini-transcribe"
 
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com/v1"

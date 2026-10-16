@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../config';
-import { apiFetch } from '../api';
+import { apiFetch, mensagemErro, ERRO_REDE } from '../api';
 import CartaoCard from './CartaoCard';
 import LancamentosFatura from './LancamentosFatura';
 import ParcelasFuturas from './ParcelasFuturas';
@@ -53,6 +53,9 @@ export default function CartoesPage() {
   const [msg, setMsg] = useState('');
   const [importing, setImporting] = useState(false);
   const [showPagar, setShowPagar] = useState<{ id: number; valor: number } | null>(null);
+  const [pagarData, setPagarData] = useState('');
+  const [pagando, setPagando] = useState(false);
+  const [pagarErro, setPagarErro] = useState('');
 
   // Import form state
   const [impCartaoId, setImpCartaoId] = useState('');
@@ -95,6 +98,16 @@ export default function CartoesPage() {
     setSelectedFaturaId(prev => prev === id ? null : id);
   };
 
+  // Convenção do sistema: mês de referência = mês anterior ao vencimento
+  // (fatura que vence em 05/10 traz as compras de setembro).
+  const alterarVencimento = (venc: string) => {
+    setImpVenc(venc);
+    if (!venc) return;
+    const [ano, mesVenc] = venc.split('-').map(Number);
+    const anterior = new Date(ano, mesVenc - 2, 1);
+    setImpMes(`${anterior.getFullYear()}-${String(anterior.getMonth() + 1).padStart(2, '0')}`);
+  };
+
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
@@ -107,20 +120,22 @@ export default function CartoesPage() {
     if (impVenc) formData.append('data_vencimento', impVenc);
 
     setImporting(true);
-    setMsg('Importando e categorizando...');
+    setMsg(file.name.toLowerCase().endsWith('.pdf')
+      ? 'Lendo a fatura com IA e categorizando... pode levar 1–2 minutos.'
+      : 'Importando e categorizando...');
     try {
       const res = await apiFetch(`${API_BASE}/faturas/importar`, { method: 'POST', body: formData });
-      const data = await res.json();
       if (res.ok) {
+        const data = await res.json();
         setMsg(`✓ Importado: ${data.total_lancamentos} lançamentos — R$ ${data.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
         setShowImport(false);
         await loadAll();
         setSelectedFaturaId(data.fatura_id);
       } else {
-        setMsg(`Erro: ${data.detail || 'falha ao importar'}`);
+        setMsg(`Erro: ${await mensagemErro(res)}`);
       }
     } catch {
-      setMsg('Erro de conexão.');
+      setMsg(`Erro: ${ERRO_REDE}`);
     } finally {
       setImporting(false);
     }
@@ -148,17 +163,35 @@ export default function CartoesPage() {
     await loadAll();
   };
 
+  const abrirPagar = (id: number, valor: number) => {
+    // Data padrão = vencimento: o pagamento cai no mês certo do dashboard
+    const venc = faturas.find(f => f.id === id)?.data_vencimento;
+    setPagarData(venc || new Date().toISOString().slice(0, 10));
+    setPagarErro('');
+    setShowPagar({ id, valor });
+  };
+
   const handlePagar = async () => {
-    if (!showPagar) return;
-    const res = await apiFetch(`${API_BASE}/faturas/${showPagar.id}/pagar`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (res.ok) {
-      setMsg('Fatura marcada como paga e lançada no financeiro.');
-      setShowPagar(null);
-      await loadAll();
+    if (!showPagar || pagando) return;
+    setPagando(true);
+    setPagarErro('');
+    try {
+      const res = await apiFetch(`${API_BASE}/faturas/${showPagar.id}/pagar`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pagarData ? { data_pagamento: pagarData } : {}),
+      });
+      if (res.ok) {
+        setMsg('Fatura marcada como paga e lançada no financeiro.');
+        setShowPagar(null);
+        await loadAll();
+      } else {
+        setPagarErro(await mensagemErro(res));
+      }
+    } catch {
+      setPagarErro(ERRO_REDE);
+    } finally {
+      setPagando(false);
     }
   };
 
@@ -186,7 +219,13 @@ export default function CartoesPage() {
       </div>
 
       {msg && (
-        <div style={styles.msgBanner} onClick={() => setMsg('')}>{msg}</div>
+        <div
+          style={msg.startsWith('Erro') ? { ...styles.msgBanner, ...styles.msgBannerErro } : styles.msgBanner}
+          onClick={() => setMsg('')}
+          title="Clique para fechar"
+        >
+          {msg}
+        </div>
       )}
 
       {/* ── ABA FATURAS ── */}
@@ -264,12 +303,14 @@ export default function CartoesPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={styles.label}>Mês de referência *</label>
-                  <input type="month" value={impMes} onChange={e => setImpMes(e.target.value)} style={styles.input} required />
+                  <label style={styles.label}>Vencimento</label>
+                  <input type="date" value={impVenc} onChange={e => alterarVencimento(e.target.value)} style={styles.input} />
                 </div>
                 <div>
-                  <label style={styles.label}>Vencimento</label>
-                  <input type="date" value={impVenc} onChange={e => setImpVenc(e.target.value)} style={styles.input} />
+                  <label style={styles.label} title="Mês em que as compras foram feitas (o anterior ao vencimento)">
+                    Mês das compras *
+                  </label>
+                  <input type="month" value={impMes} onChange={e => setImpMes(e.target.value)} style={styles.input} required />
                 </div>
                 <div>
                   <label style={styles.label}>Arquivo (.csv ou .pdf) *</label>
@@ -330,7 +371,7 @@ export default function CartoesPage() {
               <LancamentosFatura
                 faturaId={selectedFaturaId}
                 categorias={categorias}
-                onPagar={(id, valor) => setShowPagar({ id, valor })}
+                onPagar={abrirPagar}
               />
             </div>
           )}
@@ -345,9 +386,23 @@ export default function CartoesPage() {
                   <strong>R$ {showPagar.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>{' '}
                   no seu registro financeiro e marcará a fatura como paga.
                 </p>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--color-text-light)', marginTop: 12 }}>
+                  Data do pagamento
+                  <input
+                    type="date"
+                    value={pagarData}
+                    onChange={e => setPagarData(e.target.value)}
+                    style={{ ...styles.input, display: 'block', marginTop: 4 }}
+                  />
+                </label>
+                {pagarErro && (
+                  <p style={{ color: 'var(--color-error)', fontSize: '0.9rem', margin: '12px 0 0' }}>{pagarErro}</p>
+                )}
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 16 }}>
-                  <button style={styles.btnCancel} onClick={() => setShowPagar(null)}>Cancelar</button>
-                  <button style={styles.btnPrimary} onClick={handlePagar}>Confirmar</button>
+                  <button style={styles.btnCancel} onClick={() => setShowPagar(null)} disabled={pagando}>Cancelar</button>
+                  <button style={{ ...styles.btnPrimary, opacity: pagando ? 0.6 : 1 }} onClick={handlePagar} disabled={pagando}>
+                    {pagando ? 'Salvando...' : 'Confirmar'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -407,11 +462,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
   msgBanner: {
     padding: '10px 16px',
-    background: '#E8F5E9',
-    border: '1px solid #A5D6A7',
+    background: 'var(--color-success-light)',
+    border: '1px solid var(--color-success)',
     borderRadius: 8,
     fontSize: '0.9rem',
     cursor: 'pointer',
+  },
+  msgBannerErro: {
+    background: 'var(--color-error-light)',
+    border: '1px solid var(--color-error)',
   },
   cartoesRow: { display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8, alignItems: 'center' },
   addCardBtn: {
@@ -570,7 +629,7 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 100,
   },
   modal: {
-    background: '#fff',
+    background: 'var(--color-surface)',
     borderRadius: 16,
     padding: '24px 28px',
     minWidth: 340,
