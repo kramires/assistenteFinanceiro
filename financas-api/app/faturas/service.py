@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cartoes.repository import CartaoRepository
 from app.categorias.repository import CategoriaRepository
+from app.categorias.service import CategoriaService
 from app.config import settings
 from app.faturas.parsers import bb_pdf, nubank_csv
 from app.faturas.repository import FaturaRepository
@@ -269,9 +270,21 @@ async def pagar_fatura(
 
     fatura, cartao_nome = row.FaturaCartao, row.cartao_nome
 
+    # Duplo clique no botão gerava dois pagamentos (despesa contada em dobro)
+    if fatura.transacao_pagamento_id is not None or fatura.status == "paga":
+        raise ValueError(f"A fatura {cartao_nome} {fatura.mes_referencia} já está paga.")
+
+    if categoria_id is None:
+        categoria = await CategoriaService(CategoriaRepository(db)).obter_ou_criar(
+            "Cartão de Crédito", "despesa"
+        )
+        categoria_id = categoria.id
+
     tx_svc = TransacaoService(db)
     body = TransacaoCreate(
-        data=data_pagamento or date.today(),
+        # Sem data informada, o pagamento entra no vencimento (não no dia do clique),
+        # para cair no mês certo do dashboard.
+        data=data_pagamento or fatura.data_vencimento or date.today(),
         descricao=f"Fatura {cartao_nome} {fatura.mes_referencia}",
         valor=-abs(fatura.valor_total),  # pagamento de fatura é sempre despesa (saída de dinheiro)
         categoria_id=categoria_id,

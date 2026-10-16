@@ -334,3 +334,22 @@ tr:hover { background-color: var(--color-hover); }
 .recharts-cartesian-axis-tick text { fill: var(--color-text-light); }
 .recharts-cartesian-grid line { stroke: var(--color-border); }
 .recharts-legend-item-text { color: var(--color-text-dark) !important; }
+
+/* ─── Valores em cards de métrica ──────────────────────────────────────────────
+   O número escala com a largura do próprio card (container query): valores
+   longos como "-R$ 125.000,00" cabem em cards estreitos sem vazar. O teto vem
+   de --metric-max (padrão 1.6rem). */
+.metric-card {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.metric-value {
+  font-size: clamp(0.9rem, 10.5cqi, var(--metric-max, 1.6rem));
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}

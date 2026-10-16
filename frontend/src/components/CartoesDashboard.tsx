@@ -144,27 +144,27 @@ export default function CartoesDashboard({ mes }: Props) {
     <div style={styles.wrapper}>
       {/* KPIs */}
       <div style={styles.kpiRow}>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Total Cartões ({fmtMes(mes)})</div>
-          <div style={styles.kpiValue}>
+          <div className="metric-value" style={styles.kpiValue}>
             R$ {data.total_geral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Categorias no mês</div>
-          <div style={styles.kpiValue}>{data.por_categoria.length}</div>
+          <div className="metric-value" style={styles.kpiValue}>{data.por_categoria.length}</div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Média mensal (6m)</div>
-          <div style={styles.kpiValue}>
+          <div className="metric-value" style={styles.kpiValue}>
             R$ {evolucao.length > 0
               ? (evolucao.reduce((s, e) => s + e.total, 0) / evolucao.length).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
               : '0,00'}
           </div>
         </div>
-        <div style={styles.kpi}>
+        <div className="metric-card" style={styles.kpi}>
           <div style={styles.kpiLabel}>Faturas abertas</div>
-          <div style={{ ...styles.kpiValue, color: data.faturas_abertas.length > 0 ? '#E53935' : 'inherit' }}>
+          <div className="metric-value" style={{ ...styles.kpiValue, color: data.faturas_abertas.length > 0 ? 'var(--color-error)' : 'inherit' }}>
             {data.faturas_abertas.length}
           </div>
         </div>
@@ -508,7 +508,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--border-radius)', padding: '14px 18px',
   },
   kpiLabel: { fontSize: '0.72rem', color: 'var(--color-text-light)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  kpiValue: { fontSize: '1.4rem', fontWeight: 700, color: 'var(--color-primary)' },
+  kpiValue: { color: 'var(--color-primary)', ['--metric-max' as string]: '1.4rem' },
 
   chartCard: {
     background: 'var(--color-surface)', border: '1px solid var(--color-border)',

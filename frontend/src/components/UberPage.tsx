@@ -160,21 +160,21 @@ const UberPage: React.FC<Props> = ({ ano, mes }) => {
       </p>
 
       <div style={styles.summaryGrid}>
-        <div style={styles.summaryCard}>
+        <div className="metric-card" style={styles.summaryCard}>
           <div style={styles.summaryTitle}>Total transporte app no mes</div>
-          <div style={{ ...styles.summaryValue, color: 'var(--color-error)' }}>
+          <div className="metric-value" style={{ ...styles.summaryValue, color: 'var(--color-error)' }}>
             {formatCurrency(resumo?.total_mes || 0)}
           </div>
         </div>
-        <div style={styles.summaryCard}>
+        <div className="metric-card" style={styles.summaryCard}>
           <div style={styles.summaryTitle}>Total transporte app no ano</div>
-          <div style={{ ...styles.summaryValue, color: 'var(--color-primary)' }}>
+          <div className="metric-value" style={{ ...styles.summaryValue, color: 'var(--color-primary)' }}>
             {formatCurrency(resumo?.total_ano || 0)}
           </div>
         </div>
-        <div style={styles.summaryCard}>
+        <div className="metric-card" style={styles.summaryCard}>
           <div style={styles.summaryTitle}>Quantidade de viagens no mes</div>
-          <div style={styles.summaryValue}>{resumo?.quantidade_mes || 0}</div>
+          <div className="metric-value" style={styles.summaryValue}>{resumo?.quantidade_mes || 0}</div>
         </div>
       </div>
 
@@ -412,9 +412,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '8px',
   },
   summaryValue: {
-    fontWeight: 700,
-    fontSize: '1.5rem',
     color: 'var(--color-text-dark)',
+    ['--metric-max' as string]: '1.5rem',
   },
   tableCard: {
     background: 'var(--color-surface)',

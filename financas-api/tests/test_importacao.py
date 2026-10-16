@@ -56,3 +56,31 @@ async def test_divergencia_de_total_bloqueia_importacao(monkeypatch):
 
     with pytest.raises(ValueError, match="Extração divergente"):
         await service.importar_pdf(b"%PDF", 2, "2026-09", None, db=None)
+
+
+async def test_fatura_ja_paga_nao_gera_segundo_pagamento(monkeypatch):
+    """Duplo clique em 'pagar' criava duas transações (despesa contada em dobro)."""
+    fatura = SimpleNamespace(
+        id=20, mes_referencia="2026-08", status="paga", transacao_pagamento_id=533,
+        data_vencimento=date(2026, 9, 5), valor_total=Decimal("7592.00"),
+    )
+
+    class RepoFake:
+        def __init__(self, db):
+            pass
+
+        async def get_com_cartao(self, fatura_id):
+            return SimpleNamespace(FaturaCartao=fatura, cartao_nome="Nubank")
+
+    class TransacaoServiceFake:
+        def __init__(self, db):
+            pass
+
+        async def criar(self, body):
+            raise AssertionError("não deveria criar transação para fatura já paga")
+
+    monkeypatch.setattr(service, "FaturaRepository", RepoFake)
+    monkeypatch.setattr(service, "TransacaoService", TransacaoServiceFake)
+
+    with pytest.raises(ValueError, match="já está paga"):
+        await service.pagar_fatura(20, None, None, db=None)

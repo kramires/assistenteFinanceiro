@@ -361,7 +361,10 @@ async def pagar_fatura(
     db: AsyncSession = Depends(get_db),
     _: str = Depends(get_current_user),
 ):
-    result = await fatura_svc.pagar_fatura(id, body.data_pagamento, body.categoria_id, db)
+    try:
+        result = await fatura_svc.pagar_fatura(id, body.data_pagamento, body.categoria_id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if not result:
         raise HTTPException(status_code=404, detail="Fatura não encontrada.")
     return result
