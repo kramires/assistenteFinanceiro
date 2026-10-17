@@ -19,28 +19,43 @@ interface Transacao {
   origem?: string | null;
   destino?: string | null;
   categoria_id?: number;
-  categoria?: Categoria;
 }
 
 interface Props {
   refreshFlag: boolean;
   ano: number;
   mes: number;
+  /** A API devolve só categoria_id; o nome vem desta lista */
+  categorias?: Categoria[];
+  /** Filtro controlado pelo painel (null = todas) */
+  filtroCategoria?: string | null;
+  onFiltroCategoria?: (categoria: string | null) => void;
 }
 
-const TransactionList: React.FC<Props> = ({ refreshFlag, ano, mes }) => {
+const SEM_CATEGORIA = 'Sem categoria';
+
+const TransactionList: React.FC<Props> = ({ refreshFlag, ano, mes, categorias = [], filtroCategoria: filtroExterno, onFiltroCategoria }) => {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
-  const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
+  const [filtroLocal, setFiltroLocal] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transacaoEmEdicao, setTransacaoEmEdicao] = useState<Transacao | null>(null);
 
+  const controlado = onFiltroCategoria !== undefined;
+  const filtroCategoria = controlado ? filtroExterno ?? null : filtroLocal;
+  const setFiltroCategoria = controlado ? onFiltroCategoria : setFiltroLocal;
+
+  const nomeCategoria = (tx: Transacao): string | null =>
+    categorias.find(c => c.id === tx.categoria_id)?.nome ?? null;
+
   const categoriasUnicas = Array.from(
-    new Set(transacoes.map(t => t.categoria?.nome).filter(Boolean) as string[])
-  ).sort();
+    new Set(transacoes.map(t => nomeCategoria(t) ?? SEM_CATEGORIA))
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  // Mantém a opção visível mesmo se o mês não tiver lançamentos da categoria filtrada
+  if (filtroCategoria && !categoriasUnicas.includes(filtroCategoria)) categoriasUnicas.push(filtroCategoria);
   const transacoesExibidas =
-    filtroCategoria === 'todas'
+    filtroCategoria === null
       ? transacoes
-      : transacoes.filter(t => t.categoria?.nome === filtroCategoria);
+      : transacoes.filter(t => (nomeCategoria(t) ?? SEM_CATEGORIA) === filtroCategoria);
 
   // Função de fetch agora busca diretamente pelo ano E mês
   const fetchTransacoes = useCallback(() => {
@@ -95,11 +110,11 @@ const TransactionList: React.FC<Props> = ({ refreshFlag, ano, mes }) => {
             <label htmlFor="filtro-cat" style={styles.filterLabel}>Categoria:</label>
             <select
               id="filtro-cat"
-              value={filtroCategoria}
-              onChange={e => setFiltroCategoria(e.target.value)}
+              value={filtroCategoria ?? ''}
+              onChange={e => setFiltroCategoria(e.target.value || null)}
               style={styles.filterSelect}
             >
-              <option value="todas">Todas</option>
+              <option value="">Todas</option>
               {categoriasUnicas.map(nome => (
                 <option key={nome} value={nome}>{nome}</option>
               ))}
@@ -132,8 +147,8 @@ const TransactionList: React.FC<Props> = ({ refreshFlag, ano, mes }) => {
                   <td>{tx.origem || '-'}</td>
                   <td>{tx.destino || '-'}</td>
                   <td>
-                    {tx.categoria
-                      ? <span className="cat-chip" style={estiloCategoria(tx.categoria.nome)}>{tx.categoria.nome}</span>
+                    {nomeCategoria(tx)
+                      ? <span className="cat-chip" style={estiloCategoria(nomeCategoria(tx))}>{nomeCategoria(tx)}</span>
                       : '-'}
                   </td>
                   <td>{new Date(tx.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>

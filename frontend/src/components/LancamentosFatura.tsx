@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { API_BASE } from '../config';
 import { apiFetch } from '../api';
 import { estiloCategoria } from '../tema';
+import AnaliseIA from './AnaliseIA';
 
 interface Lancamento {
   id: number;
@@ -44,6 +45,10 @@ interface EditFields {
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const SEM_CATEGORIA = 'Sem categoria';
+const brl = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// Busca sem diferenciar acentos e maiúsculas ("cafe" acha "Café")
+const normalizar = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function LancamentosFatura({ faturaId, categorias, onPagar }: Props) {
   const [fatura, setFatura] = useState<Fatura | null>(null);
@@ -53,6 +58,10 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
   const [adding, setAdding] = useState(false);
   const [newFields, setNewFields] = useState<EditFields>({ data: todayISO(), descricao: '', valor: '', categoria_id: null });
   const [saving, setSaving] = useState(false);
+  const [filtroCategoria, setFiltroCategoria] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
+  const [soParceladas, setSoParceladas] = useState(false);
+  const [analiseAberta, setAnaliseAberta] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -65,7 +74,12 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
     }
   };
 
-  useEffect(() => { load(); }, [faturaId]);
+  useEffect(() => {
+    load();
+    setFiltroCategoria(null);
+    setBusca('');
+    setSoParceladas(false);
+  }, [faturaId]);
 
   const startEdit = (l: Lancamento) => {
     setEditingId(l.id);
@@ -152,6 +166,24 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
   if (loading) return <div style={styles.loading}>Carregando lançamentos...</div>;
   if (!fatura) return null;
 
+  const nomeCat = (l: Lancamento) => l.categoria_nome || SEM_CATEGORIA;
+  const porCategoria = new Map<string, { total: number; n: number }>();
+  for (const l of fatura.lancamentos) {
+    const c = porCategoria.get(nomeCat(l)) ?? { total: 0, n: 0 };
+    porCategoria.set(nomeCat(l), { total: c.total + l.valor, n: c.n + 1 });
+  }
+  const opcoesCategoria = Array.from(porCategoria.entries()).sort((a, b) => b[1].total - a[1].total);
+  const termo = normalizar(busca.trim());
+  const exibidos = fatura.lancamentos.filter(l =>
+    (filtroCategoria === null || nomeCat(l) === filtroCategoria)
+    && (!termo || normalizar(l.descricao).includes(termo))
+    && (!soParceladas || (l.parcela_atual && l.total_parcelas)),
+  );
+  const filtrando = filtroCategoria !== null || !!termo || soParceladas;
+  const totalLancamentos = fatura.lancamentos.reduce((acc, l) => acc + l.valor, 0);
+  const totalExibido = exibidos.reduce((acc, l) => acc + l.valor, 0);
+  const [anoRef, mesRef] = fatura.mes_referencia.split('-').map(Number);
+
   const isPaid = fatura.status === 'paga';
   const venc = fatura.data_vencimento
     ? new Date(fatura.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR')
@@ -193,6 +225,55 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
         </div>
       </div>
 
+      <div style={styles.filtros}>
+        <select
+          value={filtroCategoria ?? ''}
+          onChange={e => setFiltroCategoria(e.target.value || null)}
+          style={styles.filtroSelect}
+          aria-label="Filtrar por categoria"
+        >
+          <option value="">Todas as categorias ({fatura.lancamentos.length})</option>
+          {opcoesCategoria.map(([nome, { total, n }]) => (
+            <option key={nome} value={nome}>{nome} · {brl(total)} ({n})</option>
+          ))}
+        </select>
+        <input
+          type="search"
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar descrição..."
+          style={styles.filtroBusca}
+          aria-label="Buscar na descrição"
+        />
+        <label style={styles.filtroCheck}>
+          <input type="checkbox" checked={soParceladas} onChange={e => setSoParceladas(e.target.checked)} />
+          Só parceladas
+        </label>
+        {filtrando && (
+          <button
+            style={styles.btnLimpar}
+            onClick={() => { setFiltroCategoria(null); setBusca(''); setSoParceladas(false); }}
+          >
+            Limpar filtros
+          </button>
+        )}
+        <button style={styles.btnAnalisar} onClick={() => setAnaliseAberta(v => !v)}>
+          {analiseAberta ? 'Fechar análise' : 'Analisar com IA'}
+        </button>
+      </div>
+      {filtrando && (
+        <div style={styles.subtotal}>
+          {exibidos.length} de {fatura.lancamentos.length} lançamentos · <strong>{brl(totalExibido)}</strong>
+          {totalLancamentos > 0 && ` (${((totalExibido / totalLancamentos) * 100).toFixed(1)}% da fatura)`}
+        </div>
+      )}
+
+      {analiseAberta && (
+        <div style={styles.analiseWrap}>
+          <AnaliseIA ano={anoRef} mes={mesRef} categoria={filtroCategoria} cartao={fatura.cartao_nome} />
+        </div>
+      )}
+
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead>
@@ -206,7 +287,12 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
             </tr>
           </thead>
           <tbody>
-            {fatura.lancamentos.map(l => (
+            {filtrando && exibidos.length === 0 && (
+              <tr>
+                <td colSpan={6} style={styles.vazio}>Nenhum lançamento com esses filtros.</td>
+              </tr>
+            )}
+            {exibidos.map(l => (
               <tr key={l.id} style={{ ...styles.tr, background: editingId === l.id ? '#fffde7' : 'transparent' }}>
                 {editingId === l.id ? (
                   <>
@@ -397,6 +483,69 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '0.8rem',
     fontWeight: 700,
   },
+  filtros: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    padding: '12px 20px',
+    borderBottom: '1px solid var(--color-border)',
+  },
+  filtroSelect: {
+    flex: '1 1 220px',
+    minWidth: 0,
+    fontSize: '0.85rem',
+    padding: '6px 8px',
+    borderRadius: 6,
+    border: '1px solid var(--color-border)',
+  },
+  filtroBusca: {
+    flex: '1 1 180px',
+    minWidth: 0,
+    fontSize: '0.85rem',
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-surface)',
+    color: 'var(--color-text-dark)',
+  },
+  filtroCheck: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: '0.85rem',
+    color: 'var(--color-text-dark)',
+    whiteSpace: 'nowrap',
+  },
+  btnLimpar: {
+    padding: '6px 12px',
+    background: 'transparent',
+    color: 'var(--color-text-light)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontSize: '0.85rem',
+  },
+  btnAnalisar: {
+    marginLeft: 'auto',
+    padding: '6px 14px',
+    background: 'var(--color-primary-light)',
+    color: 'var(--color-primary)',
+    border: '1px solid var(--color-primary)',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600,
+    fontSize: '0.85rem',
+  },
+  subtotal: {
+    padding: '8px 20px',
+    fontSize: '0.85rem',
+    color: 'var(--color-text-dark)',
+    background: 'var(--color-surface-muted)',
+    borderBottom: '1px solid var(--color-border)',
+  },
+  analiseWrap: { padding: '0 20px 20px', borderBottom: '1px solid var(--color-border)' },
+  vazio: { padding: 24, textAlign: 'center', color: 'var(--color-text-light)', fontSize: '0.9rem' },
   tableWrapper: { overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {

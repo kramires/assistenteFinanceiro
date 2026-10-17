@@ -4,6 +4,7 @@ from decimal import Decimal
 from sqlalchemy import extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.categorias.models import Categoria
 from app.transacoes.models import Transacao
 
 
@@ -17,6 +18,16 @@ class TransacaoRepository:
             q = q.where(extract("month", Transacao.data) == mes)
         result = await self.db.execute(q.order_by(Transacao.data.desc()))
         return list(result.scalars().all())
+
+    async def listar_com_categoria(self, ano: int) -> list:
+        """Transações do ano com o nome da categoria (linhas: data, descricao, valor, categoria)."""
+        q = (
+            select(Transacao.data, Transacao.descricao, Transacao.valor, Categoria.nome.label("categoria"))
+            .outerjoin(Categoria, Transacao.categoria_id == Categoria.id)
+            .where(extract("year", Transacao.data) == ano)
+            .order_by(Transacao.data)
+        )
+        return list((await self.db.execute(q)).all())
 
     async def buscar_por_id(self, id: int) -> Transacao | None:
         return await self.db.get(Transacao, id)

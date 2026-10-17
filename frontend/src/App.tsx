@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Dashboard from './components/Dashboard';
+import AnaliseIA from './components/AnaliseIA';
 import TransactionList from './components/TransactionList';
 import CardResumoMes from './components/CardResumoMes';
 import CategoryList from './components/CategoryList';
@@ -76,6 +77,8 @@ function App() {
   const [resumoAnual, setResumoAnual] = useState<ResumoMesAnual[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [alertas, setAlertas] = useState<string[]>([]);
+  // Categoria em foco na visão geral (null = todas)
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [backendUnavailable, setBackendUnavailable] = useState(false);
   const [perfilAberto, setPerfilAberto] = useState(false);
   const [tema, setTema] = useState<Tema>(temaInicial);
@@ -124,13 +127,17 @@ function App() {
       setBackendUnavailable(false);
       Promise.all([
         apiFetch(`${API_BASE}/dashboard/gastos-por-categoria?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setGastosCategoria(data)),
-        apiFetch(`${API_BASE}/dashboard/evolucao-mensal?ano=${anoSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setEvolucaoMensal(data)),
+        apiFetch(`${API_BASE}/dashboard/evolucao-mensal?ano=${anoSelecionado}${categoriaFiltro ? `&categoria=${encodeURIComponent(categoriaFiltro)}` : ''}`).then(res => res.json()).then(data => Array.isArray(data) && setEvolucaoMensal(data)),
         apiFetch(`${API_BASE}/dashboard/resumo-anual?ano=${anoSelecionado}`).then(res => res.json()).then(data => Array.isArray(data) && setResumoAnual(data)),
         apiFetch(`${API_BASE}/dashboard/alertas?ano=${anoSelecionado}&mes=${mesSelecionado}`).then(res => res.json()).then((data: { alertas: string[] }) => setAlertas(Array.isArray(data?.alertas) ? data.alertas : [])),
         apiFetch(`${API_BASE}/categorias`).then(res => res.json()).then(data => Array.isArray(data) && setCategorias(data)),
       ]).catch(handleFetchError);
     }
-  }, [anoSelecionado, mesSelecionado, abaAtiva, refresh]);
+  }, [anoSelecionado, mesSelecionado, abaAtiva, refresh, categoriaFiltro]);
+
+  const opcoesCategoria = Array.from(
+    new Set([...categorias.filter(c => c.tipo === 'despesa').map(c => c.nome), ...gastosCategoria.map(g => g.categoria)])
+  ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
   if (!isLoggedIn) {
     return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
@@ -211,8 +218,40 @@ function App() {
                   </ul>
                 </div>
               )}
-              <Dashboard gastosCategoria={gastosCategoria} evolucaoMensal={evolucaoMensal} resumoAnual={resumoAnual} ano={anoSelecionado} />
-              <TransactionList refreshFlag={refresh} ano={anoSelecionado} mes={mesSelecionado} />
+              <div className="filtro-categoria">
+                <label htmlFor="filtro-categoria-painel">Categoria</label>
+                <select
+                  id="filtro-categoria-painel"
+                  value={categoriaFiltro ?? ''}
+                  onChange={e => setCategoriaFiltro(e.target.value || null)}
+                >
+                  <option value="">Todas as categorias</option>
+                  {opcoesCategoria.map(nome => <option key={nome} value={nome}>{nome}</option>)}
+                </select>
+                {categoriaFiltro && (
+                  <button className="toolbar-btn" onClick={() => setCategoriaFiltro(null)}>Limpar filtro</button>
+                )}
+              </div>
+              <Dashboard
+                gastosCategoria={gastosCategoria}
+                evolucaoMensal={evolucaoMensal}
+                resumoAnual={resumoAnual}
+                ano={anoSelecionado}
+                mes={mesSelecionado}
+                categoriaFiltro={categoriaFiltro}
+                onSelecionarCategoria={setCategoriaFiltro}
+              />
+              {categoriaFiltro && (
+                <AnaliseIA ano={anoSelecionado} mes={mesSelecionado} categoria={categoriaFiltro} />
+              )}
+              <TransactionList
+                refreshFlag={refresh}
+                ano={anoSelecionado}
+                mes={mesSelecionado}
+                categorias={categorias}
+                filtroCategoria={categoriaFiltro}
+                onFiltroCategoria={setCategoriaFiltro}
+              />
             </div>
             <aside className="visualizacao-sidebar">
               <BudgetForm ano={anoSelecionado} mes={mesSelecionado} onOrcamentoSalvo={refreshAll} />

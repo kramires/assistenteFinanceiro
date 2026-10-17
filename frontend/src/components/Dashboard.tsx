@@ -40,6 +40,10 @@ interface DashboardProps {
   evolucaoMensal: EvolucaoMensal[];
   resumoAnual: ResumoMesAnual[];
   ano: number;
+  mes: number;
+  /** Categoria em foco: os gráficos passam a mostrar só ela (evolucaoMensal já vem filtrada) */
+  categoriaFiltro?: string | null;
+  onSelecionarCategoria?: (categoria: string) => void;
 }
 
 const MESES_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -59,7 +63,9 @@ const formatYAxis = (tick: number) => {
     }).format(tick)}`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, resumoAnual = [], ano }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  gastosCategoria, evolucaoMensal, resumoAnual = [], ano, mes, categoriaFiltro, onSelecionarCategoria,
+}) => {
   const resumoComLabel = resumoAnual.map((r) => {
     const mesNum = parseInt(r.mes.split('-')[1], 10);
     return { ...r, mesLabel: MESES_LABELS[mesNum - 1] ?? r.mes };
@@ -105,8 +111,62 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
       ? evolucaoAbsoluta.reduce((acc, e) => acc + e.total, 0) / evolucaoAbsoluta.length
       : 0;
 
+  const totalAnoFiltrado = evolucaoAbsoluta.reduce((acc, e) => acc + e.total, 0);
+  const maiorMes = evolucaoAbsoluta.reduce<EvolucaoMensal | null>(
+    (maior, e) => (!maior || e.total > maior.total ? e : maior),
+    null,
+  );
+  const labelMes = (m: string) => MESES_LABELS[parseInt(m.split('-')[1], 10) - 1] ?? m;
+  const totalCategoriaMes = categoriaFiltro
+    ? gastosPositivos.find(g => g.categoria === categoriaFiltro)?.total ?? 0
+    : 0;
+
   return (
     <div style={styles.dashboardGrid}>
+      {categoriaFiltro ? (
+      <div style={styles.chartCard}>
+        <h3>{categoriaFiltro}</h3>
+        <div style={styles.resumoGrid}>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Gasto em {MESES_LABELS[mes - 1]}</span>
+            <strong style={styles.resumoValor}>{formatCurrency(totalCategoriaMes)}</strong>
+          </div>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Parte dos gastos do mês</span>
+            <strong style={styles.resumoValor}>
+              {totalGastos > 0 ? `${((totalCategoriaMes / totalGastos) * 100).toFixed(1)}%` : '—'}
+            </strong>
+          </div>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Total em {ano}</span>
+            <strong style={styles.resumoValor}>{formatCurrency(totalAnoFiltrado)}</strong>
+          </div>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Média por mês com gasto</span>
+            <strong style={styles.resumoValor}>{formatCurrency(mediaGastosAno)}</strong>
+          </div>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Mês mais caro</span>
+            <strong style={styles.resumoValor}>
+              {maiorMes ? `${labelMes(maiorMes.mes)} · ${formatCurrency(maiorMes.total)}` : '—'}
+            </strong>
+          </div>
+          <div style={styles.resumoItem}>
+            <span style={styles.resumoLabel}>Mês atual x média</span>
+            <strong
+              style={{
+                ...styles.resumoValor,
+                color: totalCategoriaMes > mediaGastosAno ? 'var(--color-error)' : 'var(--color-success)',
+              }}
+            >
+              {mediaGastosAno > 0
+                ? `${totalCategoriaMes >= mediaGastosAno ? '+' : ''}${(((totalCategoriaMes - mediaGastosAno) / mediaGastosAno) * 100).toFixed(0)}%`
+                : '—'}
+            </strong>
+          </div>
+        </div>
+      </div>
+      ) : (
       <div style={styles.chartCard}>
         <h3>Gastos por Categoria</h3>
         {gastosPositivos.length > 0 ? (
@@ -121,7 +181,9 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
                   cy="45%"
                   innerRadius={70}
                   outerRadius={110}
-                                    isAnimationActive={true}
+                  isAnimationActive={true}
+                  onClick={(d: { categoria?: string }) => d?.categoria && onSelecionarCategoria?.(d.categoria)}
+                  style={onSelecionarCategoria ? { cursor: 'pointer' } : undefined}
                 >
                   {gastosPositivos.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -142,11 +204,13 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
           <div style={styles.totalFooter}>
             Total de gastos no mês:{' '}
             <strong>{formatCurrency(totalGastos)}</strong>
+            {onSelecionarCategoria && <div style={styles.dica}>Clique numa fatia para ver só a categoria</div>}
           </div>
         )}
       </div>
+      )}
       <div style={styles.chartCard}>
-        <h3>Evolução Mensal de Gastos ({ano})</h3>
+        <h3>{categoriaFiltro ? `Evolução de ${categoriaFiltro}` : 'Evolução Mensal de Gastos'} ({ano})</h3>
         {evolucaoMensal.length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
               <BarChart data={evolucaoAbsoluta} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
@@ -179,6 +243,8 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
         ) : <p style={styles.emptyText}>Sem dados de evolução para este ano.</p>}
       </div>
 
+      {!categoriaFiltro && (
+      <>
       <div style={styles.chartCard}>
         <h3>Receitas x Despesas ({ano})</h3>
         {temReceitasOuDespesas ? (
@@ -230,6 +296,8 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
           <p style={styles.emptyText}>Sem dados de saldo acumulado para este ano.</p>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };
@@ -258,6 +326,35 @@ const styles: { [key: string]: React.CSSProperties } = {
     textAlign: 'center',
     color: 'var(--color-text-light)',
     paddingTop: '80px'
+  },
+  resumoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    gap: '12px',
+  },
+  resumoItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    padding: '12px',
+    borderRadius: 'var(--border-radius)',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-surface-muted)',
+    minWidth: 0,
+  },
+  resumoLabel: {
+    fontSize: '0.8rem',
+    color: 'var(--color-text-light)',
+  },
+  resumoValor: {
+    fontSize: '1.05rem',
+    color: 'var(--color-text-dark)',
+    overflowWrap: 'anywhere',
+  },
+  dica: {
+    marginTop: '4px',
+    fontSize: '0.8rem',
+    color: 'var(--color-text-light)',
   },
   totalFooter: {
     marginTop: '12px',

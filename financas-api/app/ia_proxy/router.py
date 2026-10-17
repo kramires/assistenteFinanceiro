@@ -9,7 +9,7 @@ from decimal import Decimal, InvalidOperation
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.service import get_current_user
@@ -18,6 +18,9 @@ from app.categorias.service import CategoriaService
 from app.config import settings
 from app.database import get_db
 from app.domain.transporte import TRANSPORTE_APP_EXCLUIR_DASHBOARD
+from app.faturas.repository import FaturaRepository
+from app.ia_proxy.analise import Movimento, descrever_periodo, montar_contexto
+from app.transacoes.repository import TransacaoRepository
 from app.transacoes.schemas import TransacaoCreate
 from app.transacoes.service import TransacaoService
 
@@ -160,3 +163,61 @@ async def nota_upload(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="IA não conseguiu extrair dados da nota.")
 
     return await _salvar_dados_ia(dados, db)
+
+
+class TrocaAnalise(BaseModel):
+    pergunta: str = Field(max_length=1000)
+    resposta: str = Field(max_length=6000)
+
+
+class AnalisarMovimentacoesRequest(BaseModel):
+    ano: int
+    mes: int | None = Field(default=None, ge=1, le=12)
+    categoria: str | None = Field(default=None, max_length=100)
+    # Nome do cartão: restringe a análise às compras dele (lista da fatura)
+    cartao: str | None = Field(default=None, max_length=100)
+    pergunta: str | None = Field(default=None, max_length=1000)
+    # Conversa anterior para perguntas de acompanhamento (o servidor não guarda estado)
+    historico: list[TrocaAnalise] = Field(default=[], max_length=6)
+
+
+@router.post("/ia/analisar-movimentacoes")
+async def analisar_movimentacoes(
+    body: AnalisarMovimentacoesRequest,
+    db: AsyncSession = Depends(get_db),
+    _: str = Depends(get_current_user),
+):
+    rows = await TransacaoRepository(db).listar_com_categoria(body.ano)
+    movimentos = [Movimento(r.data, r.descricao, r.valor, r.categoria) for r in rows]
+    # Compra no cartão vem positiva na fatura; aqui vira saída (negativa) como na conta
+    movimentos += [
+        Movimento(
+            r.data,
+            r.descricao,
+            -r.valor,
+            r.categoria_nome,
+            fonte=f"cartão {r.cartao_nome}",
+            mes=int(r.mes_referencia[5:7]),
+            parcela=f"{r.parcela_atual}/{r.total_parcelas}" if r.parcela_atual and r.total_parcelas else None,
+        )
+        for r in await FaturaRepository(db).listar_lancamentos_do_ano(body.ano)
+    ]
+    categoria = (body.categoria or "").strip() or None
+    cartao = (body.cartao or "").strip()
+    fonte = f"cartão {cartao}" if cartao else None
+    payload = {
+        "contexto": montar_contexto(movimentos, body.ano, body.mes, categoria, fonte),
+        "periodo": descrever_periodo(body.ano, body.mes),
+        # Rótulo do recorte para o prompt, ex.: "categoria Delivery · cartão Nubank"
+        "categoria": " · ".join(filter(None, [categoria and f"categoria {categoria}", fonte])) or None,
+        "pergunta": (body.pergunta or "").strip() or None,
+        "historico": [t.model_dump() for t in body.historico],
+    }
+
+    async with httpx.AsyncClient(timeout=170.0) as client:
+        try:
+            resp = await client.post(f"{settings.ia_api_url}/ia/analisar-movimentacoes", json=payload)
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as exc:
+            raise _erro_ia(exc) from exc

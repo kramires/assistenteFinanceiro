@@ -47,10 +47,11 @@ async def gastos_por_categoria(
 @router.get("/evolucao-mensal", response_model=list[EvolucaoMensal])
 async def evolucao_mensal(
     ano: int,
+    categoria: str | None = None,
     svc: DashboardService = Depends(_service),
     _: str = Depends(get_current_user),
 ):
-    return await svc.evolucao_mensal(ano)
+    return await svc.evolucao_mensal(ano, categoria)
 
 
 @router.get("/resumo-anual", response_model=list[ResumoMesAnual])

@@ -34,8 +34,8 @@ class DashboardService:
         rows = await self.repo.gastos_por_categoria(ano, mes)
         return [GastoCategoria(categoria=r["categoria"], total=r["total"]) for r in rows]
 
-    async def evolucao_mensal(self, ano: int) -> list[EvolucaoMensal]:
-        rows = await self.repo.evolucao_mensal(ano)
+    async def evolucao_mensal(self, ano: int, categoria: str | None = None) -> list[EvolucaoMensal]:
+        rows = await self.repo.evolucao_mensal(ano, categoria)
         return [EvolucaoMensal(mes=r["mes"], total=r["total"]) for r in rows]
 
     async def resumo_anual(self, ano: int) -> list[ResumoMesAnual]:

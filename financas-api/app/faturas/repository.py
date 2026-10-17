@@ -140,6 +140,27 @@ class FaturaRepository:
         result = await self.db.execute(q)
         return result.all()
 
+    async def listar_lancamentos_do_ano(self, ano: int) -> list:
+        """Lançamentos de todas as faturas com mês de referência no ano (para a análise com IA)."""
+        q = (
+            select(
+                LancamentoFatura.data,
+                LancamentoFatura.descricao,
+                LancamentoFatura.valor,
+                LancamentoFatura.parcela_atual,
+                LancamentoFatura.total_parcelas,
+                FaturaCartao.mes_referencia,
+                CartaoCredito.nome.label("cartao_nome"),
+                Categoria.nome.label("categoria_nome"),
+            )
+            .join(FaturaCartao, LancamentoFatura.fatura_id == FaturaCartao.id)
+            .join(CartaoCredito, FaturaCartao.cartao_id == CartaoCredito.id)
+            .outerjoin(Categoria, LancamentoFatura.categoria_id == Categoria.id)
+            .where(FaturaCartao.mes_referencia.like(f"{ano:04d}-%"))
+            .order_by(LancamentoFatura.data)
+        )
+        return list((await self.db.execute(q)).all())
+
     async def buscar_por_cartao_mes(
         self, cartao_id: int, mes_referencia: str
     ) -> FaturaCartao | None:

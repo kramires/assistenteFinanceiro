@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import and_, case, extract, func, select
+from sqlalchemy import and_, case, extract, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.categorias.models import Categoria
@@ -103,7 +103,7 @@ class DashboardRepository:
         rows = (await self.db.execute(q)).all()
         return [{"categoria": r.categoria or "Sem categoria", "total": float(r.total)} for r in rows]
 
-    async def evolucao_mensal(self, ano: int) -> list[dict]:
+    async def evolucao_mensal(self, ano: int, categoria: str | None = None) -> list[dict]:
         q = (
             select(
                 extract("year", Transacao.data).label("yr"),
@@ -118,6 +118,12 @@ class DashboardRepository:
             .group_by(extract("year", Transacao.data), extract("month", Transacao.data))
             .order_by(extract("year", Transacao.data), extract("month", Transacao.data))
         )
+        if categoria:
+            # "Sem categoria" é o rótulo que gastos_por_categoria dá às transações sem categoria
+            cond = Categoria.nome == categoria
+            if categoria == "Sem categoria":
+                cond = or_(cond, Transacao.categoria_id.is_(None))
+            q = q.outerjoin(Categoria, Transacao.categoria_id == Categoria.id).where(cond)
         rows = (await self.db.execute(q)).all()
         return [{"mes": f"{int(r.yr):04d}-{int(r.mo):02d}", "total": float(r.total)} for r in rows]
 
