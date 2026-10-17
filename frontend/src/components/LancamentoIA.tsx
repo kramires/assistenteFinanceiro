@@ -214,7 +214,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: 'transparent',
     cursor: 'pointer',
     fontSize: '1rem',
-    color: 'var(--color-text)',
+    color: 'var(--color-text-dark)',
     transition: 'border-color 0.2s, background 0.2s',
   },
   micIcon: { fontSize: '1.4rem' },

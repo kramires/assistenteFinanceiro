@@ -82,7 +82,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--color-bg, #f0f2f5)',
+    background: 'var(--color-background)',
   },
   card: {
     background: 'var(--color-surface, #fff)',
@@ -127,7 +127,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '8px',
     border: 'none',
     background: 'var(--color-primary, #1e40af)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     fontWeight: 600,
     fontSize: '1rem',
     cursor: 'pointer',
