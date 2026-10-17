@@ -252,7 +252,7 @@ const UberPage: React.FC<Props> = ({ ano, mes }) => {
                 {comparativoMensal.map((item, index) => (
                   <Cell
                     key={`mes-${index}`}
-                    fill={item.uber_mes > item.custo_carro_mensal ? '#d32f2f' : '#1e88e5'}
+                    fill={item.uber_mes > item.custo_carro_mensal ? 'var(--color-error)' : 'var(--chart-5)'}
                   />
                 ))}
               </Bar>
@@ -260,7 +260,7 @@ const UberPage: React.FC<Props> = ({ ano, mes }) => {
                 type="monotone"
                 dataKey="custo_carro_mensal"
                 name="Custo mensal do carro (estimado)"
-                stroke="#c62828"
+                stroke="var(--color-error)"
                 strokeWidth={2}
                 dot={false}
                 strokeDasharray="6 4"
@@ -303,14 +303,14 @@ const UberPage: React.FC<Props> = ({ ano, mes }) => {
                 yAxisId="left"
                 dataKey="uber_mes"
                 name="Transporte app no mes"
-                fill="#1e88e5"
+                fill="var(--color-primary)"
                 radius={[4, 4, 0, 0]}
               />
               <Line
                 yAxisId="right"
                 dataKey="percentual_uber_despesas"
                 name="% transporte app nas despesas"
-                stroke="#7c3aed"
+                stroke="var(--color-accent)"
                 strokeWidth={3}
                 dot={{ r: 3 }}
               />

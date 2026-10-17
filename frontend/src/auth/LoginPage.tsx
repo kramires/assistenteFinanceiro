@@ -42,7 +42,7 @@ const LoginPage: React.FC<Props> = ({ onLogin }) => {
   return (
     <div style={styles.overlay}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Assistente Financeiro</h1>
+        <h1 className="app-brand" style={styles.title}><span className="app-logo" aria-hidden="true">R$</span>Assistente Financeiro</h1>
         <p style={styles.subtitle}>Entre com suas credenciais para continuar.</p>
         <form onSubmit={handleSubmit} style={styles.form}>
           <label style={styles.label}>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import TransactionForm from './TransactionForm';
 import { API_BASE } from '../config';
 import { apiFetch } from '../api';
+import { estiloCategoria } from '../tema';
 
 // Interfaces
 interface Categoria {
@@ -131,7 +132,9 @@ const TransactionList: React.FC<Props> = ({ refreshFlag, ano, mes }) => {
                   <td>{tx.origem || '-'}</td>
                   <td>{tx.destino || '-'}</td>
                   <td>
-                    <span style={styles.categoryBadge}>{tx.categoria ? tx.categoria.nome : '-'}</span>
+                    {tx.categoria
+                      ? <span className="cat-chip" style={estiloCategoria(tx.categoria.nome)}>{tx.categoria.nome}</span>
+                      : '-'}
                   </td>
                   <td>{new Date(tx.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
                   <td style={{ ...styles.valor, color: tx.valor < 0 ? 'var(--color-error)' : 'var(--color-success)' }}>
@@ -211,13 +214,6 @@ const styles: { [key:string]: React.CSSProperties } = {
     width: '4px',
     height: '24px',
     borderRadius: '2px',
-  },
-  categoryBadge: {
-    background: 'var(--color-border)',
-    padding: '4px 8px',
-    borderRadius: '6px',
-    fontSize: '0.8rem',
-    fontWeight: 500
   },
   valor: {
     fontWeight: 'bold',

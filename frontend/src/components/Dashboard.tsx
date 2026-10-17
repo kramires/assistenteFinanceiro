@@ -15,6 +15,7 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+import { CORES_SERIE } from '../tema';
 
 interface GastoCategoria {
   categoria: string;
@@ -43,9 +44,7 @@ interface DashboardProps {
 
 const MESES_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-const COLORS = [
-  '#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#65a30d', '#be185d', '#4f46e5', '#0d9488',
-];
+const COLORS = CORES_SERIE;
 const COLOR_RECEITAS = 'var(--color-success)';
 const COLOR_DESPESAS = 'var(--color-error)';
 const COLOR_SALDO = 'var(--color-primary)';
@@ -114,6 +113,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
           <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
+                  stroke="var(--color-surface)"
                   data={gastosPositivos}
                   dataKey="total"
                   nameKey="categoria"
@@ -121,8 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
                   cy="45%"
                   innerRadius={70}
                   outerRadius={110}
-                  fill="#8884d8"
-                  isAnimationActive={true}
+                                    isAnimationActive={true}
                 >
                   {gastosPositivos.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -153,24 +152,24 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
               <BarChart data={evolucaoAbsoluta} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                 <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#8884d8" stopOpacity={0.2}/>
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.2}/>
                     </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="mes" tick={{fontSize: '0.8rem'}} />
                 <YAxis tickFormatter={formatYAxis} width={80} tick={{fontSize: '0.8rem'}}/>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'rgba(206, 206, 206, 0.2)'}} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{ fill: 'var(--color-hover)' }} />
                 {mediaGastosAno > 0 && (
                   <ReferenceLine
                     y={mediaGastosAno}
-                    stroke="#999"
+                    stroke="var(--color-text-light)"
                     strokeDasharray="4 4"
                     label={{
                       value: 'Média anual',
                       position: 'right',
                       fontSize: 10,
-                      fill: '#666',
+                      fill: 'var(--color-text-light)',
                     }}
                   />
                 )}
@@ -190,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
               <YAxis tickFormatter={formatYAxis} width={80} tick={{ fontSize: '0.8rem' }} />
               <Tooltip
                 formatter={(value: number) => formatCurrency(value)}
-                cursor={{ fill: 'rgba(206, 206, 206, 0.2)' }}
+                cursor={{ fill: 'var(--color-hover)' }}
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.mesLabel}
               />
               <Legend />
@@ -215,7 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({ gastosCategoria, evolucaoMensal, 
                 formatter={(value: number) => formatCurrency(value)}
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.mesLabel}
               />
-              <ReferenceLine y={0} stroke="#999" strokeDasharray="2 2" />
+              <ReferenceLine y={0} stroke="var(--color-text-light)" strokeDasharray="2 2" />
               <Line
                 type="monotone"
                 dataKey="saldo_acumulado"

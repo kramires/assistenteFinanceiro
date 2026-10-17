@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { CORES_SERIE } from '../tema';
 import { API_BASE } from '../config';
 import { apiFetch } from '../api';
 
@@ -18,7 +19,7 @@ interface MesData {
   por_cartao: { cartao: string; total: number }[];
 }
 
-const COLORS = ['#6C63FF', '#FF6584', '#43CFFF', '#FFB347', '#98D8C8', '#FF8B94'];
+const COLORS = CORES_SERIE;
 
 export default function ParcelasFuturas() {
   const [dados, setDados] = useState<MesData[]>([]);

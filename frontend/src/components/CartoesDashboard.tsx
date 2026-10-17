@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
+import { CORES_SERIE } from '../tema';
 import { API_BASE } from '../config';
 import { apiFetch } from '../api';
 
@@ -46,11 +47,7 @@ interface AnaliseIA {
   erro?: string;
 }
 
-const COLORS = [
-  '#6C63FF', '#FF6584', '#43CFFF', '#FFB347', '#98D8C8',
-  '#FF8B94', '#A78BFA', '#FCA5A5', '#86EFAC', '#FCD34D',
-  '#F97316', '#84CC16', '#06B6D4', '#EC4899', '#8B5CF6',
-];
+const COLORS = CORES_SERIE;
 
 interface Props {
   mes: string;
@@ -181,7 +178,7 @@ export default function CartoesDashboard({ mes }: Props) {
         <div style={styles.outrosAlert}>
           <div>
             <strong>{pctOutros}% dos gastos</strong> de {fmtMes(mes)} estão em "Outros" (sem categoria).{' '}
-            {recatMsg && <span style={{ color: '#16A34A' }}>{recatMsg}</span>}
+            {recatMsg && <span style={{ color: 'var(--color-success)' }}>{recatMsg}</span>}
           </div>
           <button
             style={recategorizando ? styles.btnSmallDisabled : styles.btnSmall}
@@ -193,8 +190,8 @@ export default function CartoesDashboard({ mes }: Props) {
         </div>
       )}
       {recatMsg && parseInt(pctOutros) <= 10 && (
-        <div style={{ ...styles.outrosAlert, background: 'var(--color-success-light)', borderColor: '#86EFAC' }}>
-          <span style={{ color: '#16A34A' }}>{recatMsg}</span>
+        <div style={{ ...styles.outrosAlert, background: 'var(--color-success-light)', borderColor: 'var(--color-success)' }}>
+          <span style={{ color: 'var(--color-success)' }}>{recatMsg}</span>
         </div>
       )}
 
@@ -209,6 +206,7 @@ export default function CartoesDashboard({ mes }: Props) {
                 <ResponsiveContainer width={260} height={240}>
                   <PieChart>
                     <Pie
+                      stroke="var(--color-surface)"
                       data={data.por_categoria}
                       dataKey="total"
                       nameKey="categoria"
@@ -297,7 +295,7 @@ export default function CartoesDashboard({ mes }: Props) {
               <Tooltip
                 formatter={(v: number) => [`R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Total']}
               />
-              <Bar dataKey="total" fill="#6C63FF" radius={[5, 5, 0, 0]} barSize={48} />
+              <Bar dataKey="total" fill="var(--color-primary)" radius={[5, 5, 0, 0]} barSize={48} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -381,8 +379,8 @@ export default function CartoesDashboard({ mes }: Props) {
                 <div style={styles.notaLabel}>Saúde Financeira</div>
                 <div style={{
                   ...styles.notaValor,
-                  color: analise.nota_saude_financeira >= 7 ? '#16A34A' :
-                         analise.nota_saude_financeira >= 5 ? '#D97706' : '#DC2626',
+                  color: analise.nota_saude_financeira >= 7 ? 'var(--color-success)' :
+                         analise.nota_saude_financeira >= 5 ? 'var(--color-warning)' : 'var(--color-error)',
                 }}>
                   {analise.nota_saude_financeira.toFixed(1)}/10
                 </div>
@@ -539,7 +537,7 @@ const styles: Record<string, React.CSSProperties> = {
   filtroAtivo: {
     border: '1px solid var(--color-primary)', background: 'var(--color-primary)',
     borderRadius: 20, padding: '3px 10px', fontSize: '0.78rem',
-    cursor: 'pointer', color: '#fff', fontWeight: 600,
+    cursor: 'pointer', color: 'var(--color-on-primary)', fontWeight: 600,
   },
 
   // Alerta Outros
@@ -549,7 +547,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 16px', fontSize: '0.85rem', color: 'var(--color-warning)', flexWrap: 'wrap',
   },
   btnSmall: {
-    background: 'var(--color-primary)', color: '#fff', border: 'none',
+    background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none',
     borderRadius: 6, padding: '6px 14px', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
@@ -567,7 +565,7 @@ const styles: Record<string, React.CSSProperties> = {
   analiseHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 4 },
   analiseSubtitle: { margin: '4px 0 0', fontSize: '0.82rem', color: 'var(--color-text-light)' },
   btn: {
-    background: 'var(--color-primary)', color: '#fff', border: 'none',
+    background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none',
     borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: '0.88rem',
     cursor: 'pointer', whiteSpace: 'nowrap',
   },
@@ -578,7 +576,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   erroBox: {
     marginTop: 12, padding: '10px 14px', background: 'var(--color-error-light)',
-    border: '1px solid #FCA5A5', borderRadius: 6, color: '#DC2626', fontSize: '0.85rem',
+    border: '1px solid var(--color-error)', borderRadius: 6, color: 'var(--color-error)', fontSize: '0.85rem',
   },
   analiseBody: { marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 },
   notaBox: {
@@ -616,11 +614,11 @@ const styles: Record<string, React.CSSProperties> = {
   },
   abertasGrid: { display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 },
   abertaCard: {
-    minWidth: 160, background: 'var(--color-warning-light)', border: '1px solid #FF9800',
+    minWidth: 160, background: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)',
     borderRadius: 8, padding: '12px 14px',
   },
   abertaNome: { fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-warning)', marginBottom: 2 },
   abertaMes: { fontSize: '0.75rem', color: 'var(--color-warning)', marginBottom: 4 },
   abertaVenc: { fontSize: '0.75rem', color: 'var(--color-text-light)', marginBottom: 6 },
-  abertaValor: { fontSize: '1.1rem', fontWeight: 700, color: '#E53935' },
+  abertaValor: { fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-error)' },
 };

@@ -1,6 +1,7 @@
 /* ─── Design tokens ────────────────────────────────────────────────────────────
    Todas as cores da interface passam por estas variáveis; o tema escuro só
-   redefine os valores. Tema: data-theme="light|dark" no <html>, ou o do sistema. */
+   redefine os valores. O claro é o padrão; o escuro (Grafite & Âmbar) vale
+   quando o usuário escolhe no botão ☾ (data-theme="dark" no <html>). */
 :root {
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
@@ -12,6 +13,8 @@
   --color-warning: #b45309;
   --color-warning-light: #fffbeb;
   --color-warning-border: #fcd34d;
+  --color-accent: #7c3aed;
+  --color-accent-light: #f5f3ff;
   --color-text-dark: #1e293b;
   --color-text-light: #64748b;
   --color-background: #f1f5f9;
@@ -19,7 +22,29 @@
   --color-surface-muted: #f8fafc;
   --color-hover: #f1f5f9;
   --color-border: #e2e8f0;
+  --color-track: #eef2f7;
   --color-on-primary: #ffffff;
+
+  /* Card de destaque (saldo do mês) */
+  --hero-bg: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  --hero-text: #ffffff;
+  --hero-label: rgba(255, 255, 255, 0.82);
+  --hero-icon-bg: rgba(255, 255, 255, 0.2);
+  --hero-shadow: rgba(37, 99, 235, 0.45);
+
+  /* Séries de gráficos e etiquetas de categoria */
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #dc2626;
+  --chart-5: #7c3aed;
+  --chart-6: #0891b2;
+  --chart-7: #65a30d;
+  --chart-8: #be185d;
+  --chart-9: #4f46e5;
+  --chart-10: #0d9488;
+
+  --page-glow: none;
 
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --border-radius: 10px;
@@ -28,57 +53,58 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-primary: #60a5fa;
-    --color-primary-hover: #93c5fd;
-    --color-primary-light: rgba(96, 165, 250, 0.14);
-    --color-success: #4ade80;
-    --color-success-light: rgba(74, 222, 128, 0.12);
-    --color-error: #f87171;
-    --color-error-light: rgba(248, 113, 113, 0.12);
-    --color-warning: #fbbf24;
-    --color-warning-light: rgba(251, 191, 36, 0.10);
-    --color-warning-border: rgba(251, 191, 36, 0.35);
-    --color-text-dark: #e2e8f0;
-    --color-text-light: #94a3b8;
-    --color-background: #0b1120;
-    --color-surface: #131c2e;
-    --color-surface-muted: #182235;
-    --color-hover: #1c2840;
-    --color-border: #263248;
-    --color-on-primary: #0b1120;
-    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-    color-scheme: dark;
-  }
-}
-
+/* Grafite & Âmbar: cinzas quentes (sem azul), âmbar como cor da marca */
 :root[data-theme="dark"] {
-  --color-primary: #60a5fa;
-  --color-primary-hover: #93c5fd;
-  --color-primary-light: rgba(96, 165, 250, 0.14);
-  --color-success: #4ade80;
-  --color-success-light: rgba(74, 222, 128, 0.12);
-  --color-error: #f87171;
-  --color-error-light: rgba(248, 113, 113, 0.12);
-  --color-warning: #fbbf24;
-  --color-warning-light: rgba(251, 191, 36, 0.10);
-  --color-warning-border: rgba(251, 191, 36, 0.35);
-  --color-text-dark: #e2e8f0;
-  --color-text-light: #94a3b8;
-  --color-background: #0b1120;
-  --color-surface: #131c2e;
-  --color-surface-muted: #182235;
-  --color-hover: #1c2840;
-  --color-border: #263248;
-  --color-on-primary: #0b1120;
-  --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --color-primary: #f2a83b;
+  --color-primary-hover: #f6bd63;
+  --color-primary-light: rgba(242, 168, 59, 0.14);
+  --color-success: #6fcf97;
+  --color-success-light: rgba(111, 207, 151, 0.13);
+  --color-error: #ff7a6b;
+  --color-error-light: rgba(255, 122, 107, 0.13);
+  --color-warning: #f5c45e;
+  --color-warning-light: rgba(245, 196, 94, 0.10);
+  --color-warning-border: rgba(245, 196, 94, 0.35);
+  --color-accent: #c4a5f5;
+  --color-accent-light: rgba(196, 165, 245, 0.14);
+  --color-text-dark: #f3eee8;
+  --color-text-light: #a8a097;
+  --color-background: #141210;
+  --color-surface: #1e1b18;
+  --color-surface-muted: #191714;
+  --color-hover: #2a2622;
+  --color-border: #322d27;
+  --color-track: #2a2622;
+  --color-on-primary: #1a1208;
+
+  --hero-bg: linear-gradient(135deg, #f2a83b 0%, #e0702f 100%);
+  --hero-text: #1a1208;
+  --hero-label: rgba(26, 18, 8, 0.72);
+  --hero-icon-bg: rgba(26, 18, 8, 0.12);
+  --hero-shadow: rgba(224, 112, 47, 0.35);
+
+  --chart-1: #f2a83b;
+  --chart-2: #6fcf97;
+  --chart-3: #ff7a6b;
+  --chart-4: #c4a5f5;
+  --chart-5: #7cc4f0;
+  --chart-6: #f58fb5;
+  --chart-7: #c5d86d;
+  --chart-8: #5fd0c5;
+  --chart-9: #f7b98b;
+  --chart-10: #d9c39a;
+
+  --page-glow: radial-gradient(900px 420px at 0% 0%, rgba(242, 168, 59, 0.07), transparent 70%);
+
+  --box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02);
   color-scheme: dark;
 }
 
 /* ─── Base ─────────────────────────────────────────────────────────────────── */
 body {
   background-color: var(--color-background);
+  background-image: var(--page-glow);
+  background-attachment: fixed;
   font-family: var(--font-family);
   color: var(--color-text-dark);
   margin: 0;
@@ -179,6 +205,28 @@ tr:hover { background-color: var(--color-hover); }
 }
 
 .app-header h1 { margin: 0; }
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.app-logo {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: var(--hero-bg);
+  color: var(--hero-text);
+  box-shadow: 0 4px 12px -4px var(--hero-shadow);
+}
 
 .app-toolbar {
   display: flex;
@@ -315,7 +363,8 @@ tr:hover { background-color: var(--color-hover); }
     min-height: 100vh;
   }
 
-  .app-header h1 { font-size: 1.25rem; }
+  .app-header h1 { font-size: 1.15rem; gap: 10px; }
+  .app-logo { width: 30px; height: 30px; font-size: 0.78rem; }
   .app-toolbar label { display: none; }
 
   /* Tabelas largas rolam dentro do card em vez de estourar a página */
@@ -352,4 +401,59 @@ tr:hover { background-color: var(--color-hover); }
   overflow: hidden;
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
+}
+
+/* Título com ícone colorido nos cards de métrica */
+.metric-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--color-text-light);
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.metric-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.metric-icon.tom-success { background: var(--color-success-light); color: var(--color-success); }
+.metric-icon.tom-error   { background: var(--color-error-light);   color: var(--color-error); }
+.metric-icon.tom-primary { background: var(--color-primary-light); color: var(--color-primary); }
+.metric-icon.tom-accent  { background: var(--color-accent-light);  color: var(--color-accent); }
+.metric-icon.tom-neutro  { background: var(--color-hover);         color: var(--color-text-light); }
+
+/* Card de destaque: gradiente da marca */
+.metric-hero {
+  background: var(--hero-bg);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+  padding: 14px;
+  box-shadow: 0 8px 24px -10px var(--hero-shadow);
+}
+
+.metric-hero .metric-title { color: var(--hero-label); }
+.metric-hero .metric-value { color: var(--hero-text); }
+.metric-hero .metric-icon  { background: var(--hero-icon-bg); color: var(--hero-text); }
+
+/* Etiqueta de categoria: cor fixa por nome (ver tema.ts) */
+.cat-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--cat-cor);
+  background: color-mix(in srgb, var(--cat-cor) 14%, transparent);
 }

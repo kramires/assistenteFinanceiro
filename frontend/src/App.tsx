@@ -37,16 +37,17 @@ const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set
 type Aba = 'visualizacao' | 'lancamento' | 'uber' | 'categorias' | 'cartoes';
 type Tema = 'light' | 'dark';
 
-const TEMA_KEY = 'af_tema';
+// Chave nova: escolhas antigas vinham do tema do sistema, não do usuário
+const TEMA_KEY = 'af_tema_escolhido';
 
 function temaInicial(): Tema {
   try {
-    const salvo = localStorage.getItem(TEMA_KEY);
-    if (salvo === 'light' || salvo === 'dark') return salvo;
+    if (localStorage.getItem(TEMA_KEY) === 'dark') return 'dark';
   } catch {
-    // localStorage indisponível (aba anônima): segue o sistema
+    // localStorage indisponível (aba anônima): usa o claro
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // O claro é o tema principal; o escuro só quando escolhido no botão ☾
+  return 'light';
 }
 
 const ABAS: { id: Aba; label: string }[] = [
@@ -147,7 +148,7 @@ function App() {
         </div>
       )}
       <header className="app-header">
-        <h1>Assistente Financeiro</h1>
+        <h1 className="app-brand"><span className="app-logo" aria-hidden="true">R$</span>Assistente Financeiro</h1>
         <div className="app-toolbar">
           <label htmlFor="year-select">Ano</label>
           <select id="year-select" value={anoSelecionado} onChange={e => setAnoSelecionado(Number(e.target.value))} style={styles.yearSelect}>

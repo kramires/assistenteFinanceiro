@@ -66,18 +66,40 @@ const CardResumoMes: React.FC<Props> = ({ ano, mes }) => {
   const diferenca = resumo.saldo - resumo.saldo_mes_anterior;
   const positivo = diferenca >= 0;
   
-  const Metric: React.FC<{ title: string; value: string; color?: string; size?: 'normal' | 'large' }> = ({ title, value, color, size = 'normal' }) => (
-      <div className="metric-card" style={styles.metricCard}>
-        <div style={styles.metricTitle}>{title}</div>
-        <div
-          className="metric-value"
-          style={{ color: color || 'var(--color-text-dark)', ['--metric-max' as string]: size === 'large' ? '1.7rem' : '1.3rem' }}
-          title={value}
-        >
-          {value}
-        </div>
+  const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  type Tom = 'success' | 'error' | 'primary' | 'accent' | 'neutro';
+
+  const Metric: React.FC<{
+    title: string;
+    icon: string;
+    tom: Tom;
+    children: React.ReactNode;
+    hero?: boolean;
+  }> = ({ title, icon, tom, children, hero }) => (
+    <div
+      className={hero ? 'metric-card metric-hero' : 'metric-card'}
+      style={hero ? undefined : styles.metricCard}
+    >
+      <div className="metric-title">
+        <span className={`metric-icon tom-${tom}`} aria-hidden="true">{icon}</span>
+        <span style={styles.metricTitleText}>{title}</span>
       </div>
-    );
+      {children}
+    </div>
+  );
+
+  const Valor: React.FC<{ value: string; color?: string; large?: boolean }> = ({ value, color, large }) => (
+    <div
+      className="metric-value"
+      style={{ color, ['--metric-max' as string]: large ? '1.7rem' : '1.3rem' }}
+      title={value}
+    >
+      {value}
+    </div>
+  );
+
+  const corSinal = (v: number) => (v >= 0 ? 'var(--color-success)' : 'var(--color-error)');
 
   return (
     <div style={styles.container}>
@@ -86,31 +108,34 @@ const CardResumoMes: React.FC<Props> = ({ ano, mes }) => {
           <div style={styles.periodSubtitle}>Período atual</div>
       </div>
       <div style={styles.metricsGrid}>
-        <Metric title="Receitas" value={resumo.receitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color="var(--color-success)" size="large" />
-        <Metric title="Despesas" value={resumo.despesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color="var(--color-error)" size="large" />
-        <Metric title="Saldo do Mês" value={resumo.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color={resumo.saldo >= 0 ? 'var(--color-success)' : 'var(--color-error)'} size="large" />
-        
-        <div className="metric-card" style={styles.metricCard}>
-            <div style={styles.metricTitle}>Comparação Mês Anterior</div>
-            <div className="metric-value" style={{ color: positivo ? 'var(--color-success)' : 'var(--color-error)', ['--metric-max' as string]: '1.3rem' }}>
-                {positivo ? '▲' : '▼'} {Math.abs(diferenca).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </div>
-        </div>
-
-        <Metric title="Saldo Acumulado Ano" value={resumo.saldo_acumulado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} color={resumo.saldo_acumulado >= 0 ? 'var(--color-primary)' : 'var(--color-error)'} />
-        <Metric title="Média de Gastos Mensal" value={resumo.media_mensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
-        
-        <div className="metric-card" style={styles.metricCard}>
-            <div style={styles.metricTitle}>Maior Gasto do Mês</div>
+        <Metric title="Saldo do Mês" icon="◎" tom="primary" hero>
+          <Valor value={brl(resumo.saldo)} large />
+        </Metric>
+        <Metric title="Receitas" icon="↑" tom="success">
+          <Valor value={brl(resumo.receitas)} color="var(--color-success)" large />
+        </Metric>
+        <Metric title="Despesas" icon="↓" tom="error">
+          <Valor value={brl(resumo.despesas)} color="var(--color-error)" large />
+        </Metric>
+        <Metric title="Comparação Mês Anterior" icon={positivo ? '▲' : '▼'} tom={positivo ? 'success' : 'error'}>
+          <Valor value={brl(Math.abs(diferenca))} color={corSinal(diferenca)} />
+        </Metric>
+        <Metric title="Saldo Acumulado Ano" icon="Σ" tom="accent">
+          <Valor value={brl(resumo.saldo_acumulado)} color={corSinal(resumo.saldo_acumulado)} />
+        </Metric>
+        <Metric title="Média de Gastos Mensal" icon="≈" tom="neutro">
+          <Valor value={brl(resumo.media_mensal)} color="var(--color-text-dark)" />
+        </Metric>
+        <Metric title="Maior Gasto do Mês" icon="!" tom="error">
             {resumo.maior_gasto.descricao ? (
                 <div>
                     <div style={styles.maiorGastoDesc}>{resumo.maior_gasto.descricao}</div>
-                    <div style={styles.maiorGastoValor}>{resumo.maior_gasto.valor?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                    <div style={styles.maiorGastoValor}>{resumo.maior_gasto.valor != null ? brl(resumo.maior_gasto.valor) : ''}</div>
                 </div>
             ) : (
                 <div style={{ color: 'var(--color-text-light)' }}>Nenhum gasto</div>
             )}
-        </div>
+        </Metric>
       </div>
 
       <div style={styles.resumoNarrativoSection}>
@@ -187,11 +212,9 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderRadius: 'var(--border-radius)',
         border: '1px solid var(--color-border)'
     },
-    metricTitle: {
-        fontWeight: 500,
-        color: 'var(--color-text-light)',
-        fontSize: '0.9rem',
-        marginBottom: '8px'
+    metricTitleText: {
+        minWidth: 0,
+        lineHeight: 1.25,
     },
     maiorGastoDesc: {
         fontSize: '1rem',

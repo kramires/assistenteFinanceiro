@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE } from '../config';
 import { apiFetch } from '../api';
+import { estiloCategoria } from '../tema';
 
 interface Lancamento {
   id: number;
@@ -265,7 +266,12 @@ export default function LancamentosFatura({ faturaId, categorias, onPagar }: Pro
                         : '—'}
                     </td>
                     <td style={styles.td}>
-                      <span style={styles.catTag} onClick={() => startEdit(l)} title="Clique para editar">
+                      <span
+                        className="cat-chip"
+                        style={{ ...estiloCategoria(l.categoria_nome), cursor: 'pointer' }}
+                        onClick={() => startEdit(l)}
+                        title="Clique para editar"
+                      >
                         {l.categoria_nome || 'Sem categoria'}
                       </span>
                     </td>
@@ -366,7 +372,7 @@ const styles: Record<string, React.CSSProperties> = {
   btnPagar: {
     padding: '6px 16px',
     background: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 8,
     cursor: 'pointer',
@@ -412,14 +418,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '1px 6px',
     fontSize: '0.75rem',
     fontWeight: 600,
-  },
-  catTag: {
-    background: 'var(--color-primary-light)',
-    color: 'var(--color-primary)',
-    borderRadius: 4,
-    padding: '2px 8px',
-    fontSize: '0.8rem',
-    cursor: 'pointer',
   },
   catSelect: {
     fontSize: '0.85rem',

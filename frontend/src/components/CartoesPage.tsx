@@ -519,7 +519,7 @@ const styles: Record<string, React.CSSProperties> = {
   btnPrimary: {
     padding: '8px 20px',
     background: 'var(--color-primary)',
-    color: '#fff',
+    color: 'var(--color-on-primary)',
     border: 'none',
     borderRadius: 8,
     cursor: 'pointer',
