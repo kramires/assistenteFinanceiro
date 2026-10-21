@@ -1,6 +1,7 @@
 import datetime
 import io
 import math
+import re
 from typing import Optional
 
 import pandas as pd
@@ -18,6 +19,17 @@ _ALIASES: dict[str, list[str]] = {
 _SKIP_PHRASES = frozenset(
     ["saldo do dia", "saldo anterior", "bb rende fácil", "rende facil", "bb rende facil"]
 )
+
+
+def _e_linha_de_saldo(texto: str) -> bool:
+    """O extrato do BB traz uma linha "S A L D O" (com espaços) que é o saldo, não um gasto.
+
+    Compara só as letras, então "S A L D O", "SALDO" e "Saldo do dia" caem todos aqui.
+    """
+    compacto = re.sub(r"[^a-z]", "", texto.lower())
+    if compacto.endswith("nan"):  # detalhe vazio que o pandas antigo escrevia como NaN
+        compacto = compacto[:-3]
+    return compacto in ("saldo", "saldododia", "saldoanterior")
 
 
 def _map_cols(columns: list[str]) -> dict[str, Optional[str]]:
@@ -92,7 +104,7 @@ def parse_csv(raw_bytes: bytes) -> list[dict]:
 
         # BR-034: skip header/balance rows
         texto = f"{descricao} {detalhe}".lower()
-        if not descricao or any(p in texto for p in _SKIP_PHRASES):
+        if not descricao or _e_linha_de_saldo(texto) or any(p in texto for p in _SKIP_PHRASES):
             continue
 
         data_final = _parse_data(data_str)

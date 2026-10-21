@@ -30,3 +30,17 @@ def test_celula_nan_literal_tambem_e_limpa():
 
     assert rows[0]["detalhe"] == ""
     assert rows[0]["descricao"] == "Pagto cartão crédito"
+
+
+def test_linha_de_saldo_nao_vira_transacao():
+    """Extrato do BB traz "S A L D O" (com espaços): é saldo, não gasto."""
+    csv = (
+        CABECALHO
+        + "30/09/2026;S A L D O;;1.001,99;C\n"
+        + "30/09/2026;Pagto cartão crédito;;100,00;D\n"
+    ).encode("latin1")
+
+    rows = parse_csv(csv)
+
+    assert len(rows) == 1
+    assert rows[0]["descricao"] == "Pagto cartão crédito"
