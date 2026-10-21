@@ -1,5 +1,6 @@
 import datetime
 import io
+import math
 from typing import Optional
 
 import pandas as pd
@@ -50,6 +51,20 @@ def _parse_valor(s: str) -> Optional[float]:
         return None
 
 
+def _txt(valor) -> str:
+    """Célula do CSV como texto limpo.
+
+    O pandas devolve NaN (float) nas células vazias mesmo com dtype=str; sem este
+    tratamento a descrição saía como "Pagto cartão crédito - nan".
+    """
+    if valor is None:
+        return ""
+    if isinstance(valor, float) and math.isnan(valor):
+        return ""
+    texto = str(valor).strip()
+    return "" if texto.lower() in ("nan", "none", "nat") else texto
+
+
 def parse_csv(raw_bytes: bytes) -> list[dict]:
     """Return list of parsed row dicts ready for DB insertion. Raises ValueError on bad CSV."""
     # BR-031: latin1 encoding; BR-032: auto-detect separator
@@ -70,10 +85,10 @@ def parse_csv(raw_bytes: bytes) -> list[dict]:
 
     rows = []
     for _, row in df.iterrows():
-        data_str = str(row[col_map["Data"]] or "").strip()
-        descricao = str(row[col_map["Descricao"]] or "").strip()
-        detalhe = str(row[col_map["Detalhe"]] or "").strip() if col_map["Detalhe"] else ""
-        valor_str = str(row[col_map["Valor"]] or "").strip()
+        data_str = _txt(row[col_map["Data"]])
+        descricao = _txt(row[col_map["Descricao"]])
+        detalhe = _txt(row[col_map["Detalhe"]]) if col_map["Detalhe"] else ""
+        valor_str = _txt(row[col_map["Valor"]])
 
         # BR-034: skip header/balance rows
         texto = f"{descricao} {detalhe}".lower()

@@ -1,12 +1,13 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cartoes.models import CartaoCredito
 from app.categorias.models import Categoria
 from app.faturas.models import FaturaCartao, LancamentoFatura
+from app.transacoes.models import Transacao
 
 
 class FaturaRepository:
@@ -104,6 +105,30 @@ class FaturaRepository:
             f.transacao_pagamento_id = transacao_pagamento_id
             await self.db.commit()
         return f
+
+    async def buscar_pagamento_equivalente(
+        self, valor: Decimal, referencia: date, dias: int = 20
+    ) -> Transacao | None:
+        """Lançamento da conta que já representa o pagamento desta fatura.
+
+        O extrato bancário traz a fatura paga como "Pagto cartão crédito"; se esse
+        lançamento já foi importado, marcar a fatura como paga de novo (botão "Pagar
+        fatura") gravaria a mesma despesa duas vezes no saldo do mês.
+        """
+        alvo = -abs(Decimal(str(valor)))
+        q = (
+            select(Transacao)
+            .where(
+                Transacao.valor == alvo,
+                Transacao.data >= referencia - timedelta(days=dias),
+                Transacao.data <= referencia + timedelta(days=dias),
+                Transacao.contabilizar_dashboard.is_(True),
+                or_(Transacao.origem.is_(None), Transacao.origem != "fatura"),
+            )
+            .order_by(Transacao.data)
+            .limit(1)
+        )
+        return (await self.db.execute(q)).scalar_one_or_none()
 
     async def listar_lancamentos_parcelados(self) -> list[tuple]:
         q = (

@@ -84,3 +84,74 @@ async def test_fatura_ja_paga_nao_gera_segundo_pagamento(monkeypatch):
 
     with pytest.raises(ValueError, match="já está paga"):
         await service.pagar_fatura(20, None, None, db=None)
+
+
+async def test_pagamento_vindo_do_extrato_bloqueia_marcar_como_paga(monkeypatch):
+    """Fatura já paga pelo extrato ("Pagto cartão crédito") não pode virar despesa de novo."""
+    fatura = SimpleNamespace(
+        id=21, mes_referencia="2026-08", status="aberta", transacao_pagamento_id=None,
+        data_vencimento=date(2026, 9, 5), valor_total=Decimal("4246.78"),
+    )
+    lancamento_extrato = SimpleNamespace(
+        descricao="Pagto cartão crédito", valor=Decimal("-4246.78"), data=date(2026, 9, 1),
+    )
+
+    class RepoFake:
+        def __init__(self, db):
+            pass
+
+        async def get_com_cartao(self, fatura_id):
+            return SimpleNamespace(FaturaCartao=fatura, cartao_nome="BB Ourocard")
+
+        async def buscar_pagamento_equivalente(self, valor, referencia, dias=20):
+            assert Decimal(str(valor)) == Decimal("4246.78")
+            return lancamento_extrato
+
+    class TransacaoServiceFake:
+        def __init__(self, db):
+            pass
+
+        async def criar(self, body):
+            raise AssertionError("não deveria criar despesa duplicada")
+
+    monkeypatch.setattr(service, "FaturaRepository", RepoFake)
+    monkeypatch.setattr(service, "TransacaoService", TransacaoServiceFake)
+
+    with pytest.raises(ValueError, match="duas vezes"):
+        await service.pagar_fatura(21, None, None, db=None)
+
+
+async def test_forcar_marca_como_paga_mesmo_com_lancamento_equivalente(monkeypatch):
+    """Confirmação explícita (forcar) continua permitindo lançar o pagamento."""
+    fatura = SimpleNamespace(
+        id=22, mes_referencia="2026-08", status="aberta", transacao_pagamento_id=None,
+        data_vencimento=date(2026, 9, 5), valor_total=Decimal("4246.78"),
+    )
+    criadas = []
+
+    class RepoFake:
+        def __init__(self, db):
+            pass
+
+        async def get_com_cartao(self, fatura_id):
+            return SimpleNamespace(FaturaCartao=fatura, cartao_nome="BB Ourocard")
+
+        async def buscar_pagamento_equivalente(self, valor, referencia, dias=20):
+            raise AssertionError("forcar=True não deve consultar duplicidade")
+
+        async def marcar_paga(self, fatura_id, transacao_id):
+            criadas.append(("paga", fatura_id, transacao_id))
+
+    class TransacaoServiceFake:
+        def __init__(self, db):
+            pass
+
+        async def criar(self, body):
+            criadas.append(("tx", float(body.valor), body.origem))
+            return SimpleNamespace(id=900)
+
+    monkeypatch.setattr(service, "FaturaRepository", RepoFake)
+    monkeypatch.setattr(service, "TransacaoService", TransacaoServiceFake)
+
+    await service.pagar_fatura(22, None, 1, db=None, forcar=True)
+    assert criadas == [("tx", -4246.78, "fatura"), ("paga", 22, 900)]

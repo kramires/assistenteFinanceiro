@@ -47,6 +47,8 @@ class FaturaResumo(BaseModel):
 class PagarFaturaRequest(BaseModel):
     data_pagamento: date | None = None
     categoria_id: int | None = None
+    # Confirmação explícita quando já existe um lançamento com o mesmo valor no período
+    forcar: bool = False
 
 
 class PatchLancamentoRequest(BaseModel):

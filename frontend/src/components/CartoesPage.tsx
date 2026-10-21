@@ -186,7 +186,31 @@ export default function CartoesPage() {
         setShowPagar(null);
         await loadAll();
       } else {
-        setPagarErro(await mensagemErro(res));
+        const texto = await mensagemErro(res);
+        // 409 por lançamento equivalente: confirma antes de forçar (evita despesa em dobro)
+        if (res.status === 409 && texto.includes('duas vezes')) {
+          if (window.confirm(`${texto}\n\nMarcar a fatura como paga mesmo assim?`)) {
+            const r2 = await apiFetch(`${API_BASE}/faturas/${showPagar.id}/pagar`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...(pagarData ? { data_pagamento: pagarData } : {}),
+                forcar: true,
+              }),
+            });
+            if (r2.ok) {
+              setMsg('Fatura marcada como paga e lançada no financeiro.');
+              setShowPagar(null);
+              await loadAll();
+            } else {
+              setPagarErro(await mensagemErro(r2));
+            }
+          } else {
+            setPagarErro(texto);
+          }
+          return;
+        }
+        setPagarErro(texto);
       }
     } catch {
       setPagarErro(ERRO_REDE);

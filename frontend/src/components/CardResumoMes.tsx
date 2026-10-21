@@ -138,6 +138,13 @@ const CardResumoMes: React.FC<Props> = ({ ano, mes }) => {
         </Metric>
       </div>
 
+      <p style={styles.notaDespesas}>
+        <strong>Como o saldo é calculado:</strong> as despesas somam o que saiu da conta no mês,
+        incluindo o <em>pagamento das faturas</em>. As compras de cada cartão aparecem na aba
+        Cartões (composição da fatura) e não são somadas aqui — é o mesmo dinheiro visto de dois
+        lados, não dois gastos.
+      </p>
+
       <div style={styles.resumoNarrativoSection}>
         <div style={styles.resumoNarrativoTitle}>Resumo com IA</div>
         <button
@@ -226,6 +233,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     maiorGastoValor: {
         color: 'var(--color-error)',
         fontWeight: 600
+    },
+    notaDespesas: {
+      margin: '14px 0 0',
+      fontSize: '0.9rem',
+      lineHeight: 1.45,
+      color: 'var(--color-text-light)',
     },
     resumoNarrativoSection: {
       marginTop: '24px',

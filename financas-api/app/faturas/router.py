@@ -362,7 +362,9 @@ async def pagar_fatura(
     _: str = Depends(get_current_user),
 ):
     try:
-        result = await fatura_svc.pagar_fatura(id, body.data_pagamento, body.categoria_id, db)
+        result = await fatura_svc.pagar_fatura(
+            id, body.data_pagamento, body.categoria_id, db, forcar=body.forcar
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if not result:

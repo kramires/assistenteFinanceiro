@@ -19,6 +19,12 @@ from app.transacoes.service import TransacaoService
 _CATEGORIZE_CONCURRENCY = 5
 
 
+def _brl(valor) -> str:
+    """Valor em reais no formato brasileiro (R$ 1.234,56)."""
+    texto = f"{abs(float(valor)):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"R$ {texto}"
+
+
 async def _categorizar(descricao: str, cats: list[str], sem: asyncio.Semaphore) -> str | None:
     async with sem:
         try:
@@ -262,6 +268,7 @@ async def pagar_fatura(
     data_pagamento: date | None,
     categoria_id: int | None,
     db: AsyncSession,
+    forcar: bool = False,
 ) -> dict:
     repo = FaturaRepository(db)
     row = await repo.get_com_cartao(fatura_id)
@@ -274,6 +281,21 @@ async def pagar_fatura(
     if fatura.transacao_pagamento_id is not None or fatura.status == "paga":
         raise ValueError(f"A fatura {cartao_nome} {fatura.mes_referencia} já está paga.")
 
+    # O pagamento pode já existir como lançamento importado do extrato bancário
+    # ("Pagto cartão crédito"): gravar outro contaria a mesma despesa duas vezes.
+    referencia = data_pagamento or fatura.data_vencimento or date.today()
+    if not forcar:
+        existente = await repo.buscar_pagamento_equivalente(fatura.valor_total, referencia)
+        if existente is not None:
+            raise ValueError(
+                f"Já existe o lançamento \"{existente.descricao}\" de "
+                f"{_brl(abs(Decimal(str(existente.valor))))} em "
+                f"{existente.data.strftime('%d/%m/%Y')}, que parece ser o pagamento desta "
+                f"fatura importado do extrato. Marcar a fatura como paga agora contaria a "
+                f"despesa duas vezes no saldo do mês. Confira o lançamento em "
+                f"Movimentações — se for outro pagamento, repita a operação com forçar."
+            )
+
     if categoria_id is None:
         categoria = await CategoriaService(CategoriaRepository(db)).obter_ou_criar(
             "Cartão de Crédito", "despesa"
@@ -284,7 +306,7 @@ async def pagar_fatura(
     body = TransacaoCreate(
         # Sem data informada, o pagamento entra no vencimento (não no dia do clique),
         # para cair no mês certo do dashboard.
-        data=data_pagamento or fatura.data_vencimento or date.today(),
+        data=referencia,
         descricao=f"Fatura {cartao_nome} {fatura.mes_referencia}",
         valor=-abs(fatura.valor_total),  # pagamento de fatura é sempre despesa (saída de dinheiro)
         categoria_id=categoria_id,
