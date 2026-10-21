@@ -19,7 +19,11 @@ from decimal import Decimal
 from sqlalchemy import or_, select
 
 from app.database import AsyncSessionLocal
-from app.faturas.models import FaturaCartao
+
+# Importados para registrar todas as tabelas no metadata (FK de faturas_cartao -> cartoes)
+from app.cartoes.models import CartaoCredito  # noqa: F401
+from app.categorias.models import Categoria  # noqa: F401
+from app.faturas.models import FaturaCartao, LancamentoFatura  # noqa: F401
 from app.transacoes.models import Transacao
 
 JANELA_DIAS = 20
